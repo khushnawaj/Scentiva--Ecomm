@@ -1,0 +1,87 @@
+/* Tailwind layers */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------
+   🌼 Global Body Styles (Candle / Gift Theme)
+------------------------------------------------------ */
+body {
+  background: #fff9f5; /* soft warm cream */
+  font-family: "Poppins", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #2b2b2b;
+}
+
+/* ------------------------------------------------------
+   🌸 Headings use luxury serif font
+------------------------------------------------------ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Playfair Display", serif;
+  color: #8B5E3C; /* warm wax brown */
+}
+
+/* ------------------------------------------------------
+   🌟 Custom Components (Used Across Your Site)
+------------------------------------------------------ */
+
+/* Warm, soft card style */
+.card-cosset {
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(139, 94, 60, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(255, 249, 245, 0.85)
+  );
+}
+
+/* Golden badge for "Featured", "Best Seller", etc. */
+.badge-gold {
+  background: linear-gradient(90deg, #F6C85F, #FFD88A);
+  color: #3b2b1b;
+  font-weight: 600;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+/* Premium CTA button */
+.btn-primary {
+  background: linear-gradient(90deg, #E07A5F, #ff977a);
+  color: #ffffff;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(224, 122, 95, 0.22);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+/* ------------------------------------------------------
+   ⚠️ REMOVE OLD .container OVERRIDE
+   Tailwind already controls .container
+   Your previous override caused layout issues.
+------------------------------------------------------ */
+
+/* ❌ DO NOT OVERRIDE TAILWIND CONTAINER  
+.container {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 1rem;
+} */
+
+/* If you ever want a custom container, use this name: */
+.candle-container {
+  max-width: 1300px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}

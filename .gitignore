@@ -1,0 +1,17 @@
+# node
+node_modules/
+npm-debug.log
+
+# env
+.env
+client/.env
+server/.env
+
+# uploads
+server/uploads/
+
+# build
+client/dist/
+
+# misc
+.DS_Store
