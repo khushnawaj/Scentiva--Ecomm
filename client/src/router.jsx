@@ -13,7 +13,7 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./components/Admin/AdminDashboard"; // corrected path
 import MyOrders from "./pages/MyOrders";
 import OrderSuccess from "./pages/OrderSuccess";
-import Wishlist from "./pages/Wishlist"; // corrected path/casing
+import wishlist from './pages/wishlist'; // corrected path/casing
 
 export default function createAppRouter() {
   return createBrowserRouter(
@@ -32,7 +32,7 @@ export default function createAppRouter() {
           { path: "login", element: <Login /> },
           { path: "register", element: <Register /> },
           { path: "profile", element: <Profile /> },
-          { path: "wishlist", element: <Wishlist /> },
+          { path: "wishlist", element: <wishlist /> },
           { path: "admin/*", element: <AdminDashboard /> },
         ],
       },
