@@ -1,7 +1,10 @@
 // src/router.jsx
 import React from "react";
 import { createBrowserRouter } from "react-router-dom";
-import App from "./App"; // layout with Navbar + Toaster
+
+import App from "./App";
+
+// pages (CASE MUST MATCH FILE NAMES)
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import ProductPage from "./pages/ProductPage";
@@ -10,17 +13,19 @@ import CheckoutPage from "./pages/CheckoutPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
-import AdminDashboard from "./components/Admin/AdminDashboard"; // corrected path
 import MyOrders from "./pages/MyOrders";
 import OrderSuccess from "./pages/OrderSuccess";
-import Wishlist from "./pages/Wishlist"; // corrected path/casing
+import Wishlist from "./pages/wishlist";
+
+// admin
+import AdminDashboard from "./components/Admin/AdminDashboard";
 
 export default function createAppRouter() {
   return createBrowserRouter(
     [
       {
         path: "/",
-        element: <App />, // layout containing Navbar + Toaster + Outlet
+        element: <App />,
         children: [
           { index: true, element: <Home /> },
           { path: "products", element: <Products /> },
@@ -32,13 +37,12 @@ export default function createAppRouter() {
           { path: "login", element: <Login /> },
           { path: "register", element: <Register /> },
           { path: "profile", element: <Profile /> },
-          { path: "Wishlist", element: <Wishlist /> },
+          { path: "wishlist", element: <Wishlist /> },
           { path: "admin/*", element: <AdminDashboard /> },
         ],
       },
     ],
     {
-      // optional: opt-in to v7 behavior (silences the console warning)
       future: { v7_relativeSplatPath: true },
     }
   );
