@@ -1,4 +1,4 @@
-# MERN E-commerce Full Starter (Expanded)
+# MERN E-commerce
 
 This repository contains a more complete MERN e-commerce starter.
 
@@ -7,7 +7,7 @@ This repository contains a more complete MERN e-commerce starter.
 1. Ensure MongoDB is running (local or Atlas).
 2. Server:
    - cd server
-   - cp .env.example .env
+   - cp .env
    - edit .env to configure MONGO_URI and JWT_SECRET
    - npm install
    - npm run seed
@@ -15,7 +15,7 @@ This repository contains a more complete MERN e-commerce starter.
 
 3. Client:
    - cd client
-   - cp .env.example .env
+   - cp .env
    - npm install
    - npm run dev
 
