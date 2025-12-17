@@ -111,7 +111,8 @@ export default function OrderList() {
       await toast.promise(op, {
         loading: "Updating order status...",
         success: "Order status updated",
-        error: (err) => err?.response?.data?.message || "Failed to update order status",
+        error: (err) =>
+          err?.response?.data?.message || "Failed to update order status",
       });
     } catch (err) {
       console.error("Failed to update order status", err);
@@ -121,7 +122,9 @@ export default function OrderList() {
         prev.map((o) => (o._id === orderId ? { ...o, status: oldStatus } : o))
       );
 
-      toast.error(err?.response?.data?.message || "Failed to update order status.");
+      toast.error(
+        err?.response?.data?.message || "Failed to update order status."
+      );
     } finally {
       setUpdatingId(null);
       setPending(null);
@@ -161,7 +164,10 @@ export default function OrderList() {
       {loading && (
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 bg-gray-100 animate-pulse rounded-lg" />
+            <div
+              key={i}
+              className="h-24 bg-gray-100 animate-pulse rounded-lg"
+            />
           ))}
         </div>
       )}
@@ -242,12 +248,16 @@ export default function OrderList() {
                     <div>
                       <div className="text-xs text-gray-500">Placed on</div>
                       <div className="font-medium">
-                        {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}
+                        {o.createdAt
+                          ? new Date(o.createdAt).toLocaleString()
+                          : "—"}
                       </div>
 
                       {o.status === "delivered" && o.deliveredAt && (
                         <div className="mt-2">
-                          <div className="text-xs text-gray-500">Delivered on</div>
+                          <div className="text-xs text-gray-500">
+                            Delivered on
+                          </div>
                           <div className="font-medium text-green-700">
                             {new Date(o.deliveredAt).toLocaleString()}
                           </div>
@@ -260,7 +270,9 @@ export default function OrderList() {
                       <div className="text-gray-700">
                         {o.user?.name || o.shippingAddress?.fullName || "—"}
                       </div>
-                      <div className="text-xs text-gray-500">{o.user?.email || "No email"}</div>
+                      <div className="text-xs text-gray-500">
+                        {o.user?.email || "No email"}
+                      </div>
 
                       <div className="mt-3">
                         <div className="text-xs text-gray-500">Shipping to</div>
@@ -275,17 +287,24 @@ export default function OrderList() {
                             </>
                           )}
                           <br />
-                          {o.shippingAddress?.city}, {o.shippingAddress?.state} {o.shippingAddress?.postalCode}
+                          {o.shippingAddress?.city}, {o.shippingAddress?.state}{" "}
+                          {o.shippingAddress?.postalCode}
                         </div>
                       </div>
                     </div>
 
                     <div>
                       <div className="text-xs text-gray-500">Payment</div>
-                      <div className="font-medium">{o.paymentMethod || "N/A"}</div>
+                      <div className="font-medium">
+                        {o.paymentMethod || "N/A"}
+                      </div>
                       <div className="text-xs text-gray-500">
                         {o.isPaid
-                          ? `Paid${o.paidAt ? " on " + new Date(o.paidAt).toLocaleString() : ""}`
+                          ? `Paid${
+                              o.paidAt
+                                ? " on " + new Date(o.paidAt).toLocaleString()
+                                : ""
+                            }`
                           : "Not paid"}
                       </div>
                     </div>
@@ -296,20 +315,45 @@ export default function OrderList() {
                     <div className="font-medium mb-2">Items</div>
                     <ul className="space-y-3">
                       {o.orderItems?.map((item, idx) => (
-                        <li key={item.product || idx} className="flex items-center gap-3">
-                          <img
-                            src={normalizeMediaUrl(item.image) || "/placeholder.png"}
-                            alt={item.title}
-                            className="w-14 h-14 object-cover rounded-lg"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.png";
-                            }}
-                          />
+                        <li
+                          key={item.product || idx}
+                          className="flex items-center gap-3"
+                        >
+                          {(() => {
+                            const rawImage =
+                              typeof item.image === "string"
+                                ? item.image
+                                : item.image?.url ||
+                                  item.image?.secure_url ||
+                                  null;
+
+                            return (
+                              <img
+                                src={
+                                  normalizeMediaUrl(rawImage) ||
+                                  "/placeholder.png"
+                                }
+                                alt={item.title}
+                                className="w-14 h-14 object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.png";
+                                }}
+                              />
+                            );
+                          })()}
+
                           <div className="flex-1">
-                            <div className="font-medium text-textmuted">{item.title}</div>
-                            <div className="text-xs text-gray-600">Qty: {item.qty} × ₹{item.price}</div>
+                            <div className="font-medium text-textmuted">
+                              {item.title}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Qty: {item.qty} × ₹{item.price}
+                            </div>
                           </div>
-                          <div className="font-medium">₹{(item.qty * item.price).toLocaleString("en-IN")}</div>
+
+                          <div className="font-medium">
+                            ₹{(item.qty * item.price).toLocaleString("en-IN")}
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -324,7 +368,11 @@ export default function OrderList() {
       <ConfirmModal
         open={confirmOpen}
         title="Confirm status change"
-        message={pending ? `Do you want to change the status to "${pending.newStatus}"?` : ""}
+        message={
+          pending
+            ? `Do you want to change the status to "${pending.newStatus}"?`
+            : ""
+        }
         confirmLabel="Yes, change"
         cancelLabel="Cancel"
         loading={updatingId === pending?.orderId}

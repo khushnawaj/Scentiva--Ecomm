@@ -15,6 +15,8 @@ const {
 const { protect } = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/uploadMiddleware");
 const User = require("../models/User");
+const cloudinary = require("../config/cloudinary");
+
 
 // ✅ validation imports
 const validate = require("../middlewares/validateMiddleware");
@@ -42,7 +44,7 @@ router.put("/change-password", protect, changePassword);
 router.post(
   "/avatar",
   protect,
-  upload.single("avatar"), // expects field name "avatar"
+  upload.single("avatar"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
       res.status(400);
@@ -55,13 +57,25 @@ router.post(
       throw new Error("User not found");
     }
 
-    // file saved as "uploads/<filename>"
-    const avatarPath = `/uploads/${req.file.filename}`;
-    user.avatar = avatarPath;
+    // 🔥 Delete old avatar from Cloudinary (if exists)
+    if (user.avatar?.public_id) {
+      await cloudinary.uploader.destroy(user.avatar.public_id);
+    }
+
+    // ✅ Save new avatar
+    user.avatar = {
+      url: req.file.path,          // Cloudinary secure URL
+      public_id: req.file.filename // Cloudinary public_id
+    };
+
     await user.save();
 
-    res.json({ avatar: avatarPath });
+    res.json({
+      message: "Avatar updated successfully",
+      avatar: user.avatar.url
+    });
   })
 );
+
 
 module.exports = router;

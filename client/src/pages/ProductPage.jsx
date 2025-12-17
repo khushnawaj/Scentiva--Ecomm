@@ -47,14 +47,7 @@ export default function ProductPage() {
         const prod = data.product || data;
         setProduct(prod);
 
-        const firstImg =
-          (prod?.images &&
-            prod.images[0] &&
-            (prod.images[0].url ||
-              prod.images[0].filename ||
-              prod.images[0].path)) ||
-          null;
-
+        const firstImg = prod?.images?.[0] || null;
         setMainImage(firstImg);
       } catch (err) {
         if (err.name === "CanceledError" || err.name === "AbortError") return;
@@ -90,11 +83,12 @@ export default function ProductPage() {
     }
   };
 
-  const normalizeRaw = (raw) =>
-    normalizeMediaUrl(raw) || normalizeMediaUrl(getPlaceholder("image"));
+
 
   // Add to cart (wrapped with toast.promise)
-  const handleAddToCart = async (opts = { productId: productId, quantity: qty }) => {
+  const handleAddToCart = async (
+    opts = { productId: productId, quantity: qty }
+  ) => {
     const idToAdd = opts.productId;
     const quantity = opts.quantity ?? qty;
 
@@ -128,14 +122,18 @@ export default function ProductPage() {
 
     setBusy(true);
     try {
-      const nextLabel = inWishlist ? "Removing from wishlist..." : "Adding to wishlist...";
+      const nextLabel = inWishlist
+        ? "Removing from wishlist..."
+        : "Adding to wishlist...";
       const promise = toggleWishlist(product);
 
       await toast.promise(promise, {
         loading: nextLabel,
         success: () => {
           // Because the wishlist context updates, use the pre-toggle value to display correct message
-          const doneMsg = inWishlist ? "Removed from wishlist" : "Added to wishlist";
+          const doneMsg = inWishlist
+            ? "Removed from wishlist"
+            : "Added to wishlist";
           // trigger heart animation briefly on add
           if (!inWishlist) {
             setHeartAnimating(true);
@@ -143,7 +141,8 @@ export default function ProductPage() {
           }
           return doneMsg;
         },
-        error: (err) => err?.response?.data?.message || "Failed to update wishlist",
+        error: (err) =>
+          err?.response?.data?.message || "Failed to update wishlist",
       });
     } catch (err) {
       console.error("Wishlist toggle failed", err);
@@ -206,7 +205,10 @@ export default function ProductPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center text-red-500 mb-4">{error}</div>
-        <button onClick={() => window.location.reload()} className="btn-primary">
+        <button
+          onClick={() => window.location.reload()}
+          className="btn-primary"
+        >
           Retry
         </button>
       </div>
@@ -221,14 +223,11 @@ export default function ProductPage() {
     );
   }
 
-  const images =
-    (product.images &&
-      product.images.length &&
-      product.images.map((img) => img.url || img.filename || img.path || img)) ||
-    [];
+  const images = product.images || [];
 
-  const mainRaw = mainImage || (images.length ? images[0] : null);
-  const mainSrc = normalizeRaw(mainRaw);
+  const mainObj = mainImage || images[0] || null;
+  const mainSrc =
+    normalizeMediaUrl(mainObj) || normalizeMediaUrl(getPlaceholder("image"));
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -242,7 +241,9 @@ export default function ProductPage() {
               className="w-full h-[520px] object-cover"
               onError={(e) => {
                 e.currentTarget.onerror = null;
-                e.currentTarget.src = normalizeRaw(getPlaceholder("image"));
+                e.currentTarget.src = normalizeMediaUrl(
+                  getPlaceholder("image")
+                );
               }}
             />
           </div>
@@ -250,16 +251,25 @@ export default function ProductPage() {
           {images.length > 1 && (
             <div className="mt-3 flex gap-2">
               {images.map((img, i) => {
-                const raw = img.url || img.filename || img.path || img;
-                const selected = mainImage === raw || (!mainImage && i === 0);
+                const selected = mainImage === img || (!mainImage && i === 0);
+
                 return (
                   <button
                     key={i}
-                    onClick={() => setMainImage(raw)}
-                    className={`w-20 h-20 rounded-md overflow-hidden border ${selected ? "ring-2 ring-flame" : ""}`}
+                    onClick={() => setMainImage(img)}
+                    className={`w-20 h-20 rounded-md overflow-hidden border ${
+                      selected ? "ring-2 ring-flame" : ""
+                    }`}
                     aria-label={`View image ${i + 1}`}
                   >
-                    <img src={normalizeRaw(raw)} alt={`${product.title}-${i}`} className="w-full h-full object-cover" />
+                    <img
+                      src={
+                        normalizeMediaUrl(img) ||
+                        normalizeMediaUrl(getPlaceholder("image"))
+                      }
+                      alt={`${product.title}-${i}`}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 );
               })}
@@ -269,11 +279,21 @@ export default function ProductPage() {
 
         {/* Right: Details */}
         <div>
-          <h1 className="text-2xl font-semibold text-wax mb-1">{product.title}</h1>
-          {product.brand && <div className="text-sm text-textmuted mb-3">{product.brand}</div>}
-          <div className="text-2xl font-bold mb-4">{formatPrice(product.price)}</div>
+          <h1 className="text-2xl font-semibold text-wax mb-1">
+            {product.title}
+          </h1>
+          {product.brand && (
+            <div className="text-sm text-textmuted mb-3">{product.brand}</div>
+          )}
+          <div className="text-2xl font-bold mb-4">
+            {formatPrice(product.price)}
+          </div>
 
-          {product.description && <div className="text-sm text-textmuted mb-4 whitespace-pre-line">{product.description}</div>}
+          {product.description && (
+            <div className="text-sm text-textmuted mb-4 whitespace-pre-line">
+              {product.description}
+            </div>
+          )}
 
           <div className="flex items-center gap-4 mb-4">
             <label className="text-sm">Quantity</label>
@@ -288,18 +308,28 @@ export default function ProductPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 mb-4">
-            <button onClick={openBuyNowConfirm} className="btn-primary" disabled={busy || buyNowLoading}>
+            <button
+              onClick={openBuyNowConfirm}
+              className="btn-primary"
+              disabled={busy || buyNowLoading}
+            >
               {buyNowLoading ? "Processing..." : "Buy Now"}
             </button>
 
-            <button onClick={() => handleAddToCart({ productId, quantity: qty })} className="btn-secondary" disabled={busy}>
+            <button
+              onClick={() => handleAddToCart({ productId, quantity: qty })}
+              className="btn-secondary"
+              disabled={busy}
+            >
               {busy ? "Adding..." : "Add to cart"}
             </button>
 
             {/* Animated heart wishlist button */}
             <button
               onClick={handleToggleWishlist}
-              className={`btn-ghost flex items-center gap-2 ${inWishlist ? "text-flame" : "text-gray-700"}`}
+              className={`btn-ghost flex items-center gap-2 ${
+                inWishlist ? "text-flame" : "text-gray-700"
+              }`}
               disabled={busy}
               aria-pressed={inWishlist}
             >
@@ -331,7 +361,9 @@ export default function ProductPage() {
 
           <div className="text-sm text-textmuted mt-6 space-y-1">
             <div>SKU: {product.sku || "—"}</div>
-            <div>Category: {product.category?.name || product.category || "—"}</div>
+            <div>
+              Category: {product.category?.name || product.category || "—"}
+            </div>
             {product.stock !== undefined && <div>Stock: {product.stock}</div>}
           </div>
         </div>

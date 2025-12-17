@@ -70,13 +70,15 @@ export const AuthProvider = ({ children }) => {
         try {
           const { data } = await api.post("/auth/login", { email, password });
 
-          const userObj = {
-            _id: data._id,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            addresses: data.addresses || []
-          };
+const userObj = {
+  _id: data._id,
+  name: data.name,
+  email: data.email,
+  role: data.role,
+  avatar: data.avatar || null,          // ✅ Cloudinary-safe
+  addresses: data.addresses || []
+};
+
 
           setUser(userObj);
           setToken(data.token);
@@ -110,13 +112,15 @@ export const AuthProvider = ({ children }) => {
             password,
           });
 
-          const userObj = {
-            _id: data._id,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            addresses: data.addresses || []
-          };
+const userObj = {
+  _id: data._id,
+  name: data.name,
+  email: data.email,
+  role: data.role,
+  avatar: data.avatar || null,          // ✅ Cloudinary-safe
+  addresses: data.addresses || []
+};
+
 
           setUser(userObj);
           setToken(data.token);

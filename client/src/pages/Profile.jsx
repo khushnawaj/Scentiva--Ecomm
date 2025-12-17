@@ -57,59 +57,71 @@ export default function Profile() {
   }, [setUser]);
 
   // fetch orders only when Orders tab is opened
-  useEffect(() => {
-    if (tab !== "orders") return;
-    const loadOrders = async () => {
-      setOrdersError(null);
-      setOrdersLoading(true);
-      try {
-        const { data } = await api.get("/orders/myorders");
-        setOrders(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to load orders", err);
-        setOrdersError(err?.response?.data?.message || "Failed to load your orders.");
-        toast.error(err?.response?.data?.message || "Failed to load your orders.");
-        setOrders([]);
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
-    loadOrders();
-  }, [tab]);
+useEffect(() => {
+  if (tab !== "orders" || !user) return;
 
-  // AVATAR UPLOAD (toast.promise)
-  const uploadAvatar = async (file) => {
-    if (!file) return;
-
-    const form = new FormData();
-    form.append("avatar", file);
-
+  const loadOrders = async () => {
+    setOrdersError(null);
+    setOrdersLoading(true);
     try {
-      const res = await toast.promise(
-        api.post("/auth/avatar", form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        }),
-        {
-          loading: "Uploading avatar...",
-          success: (res) => {
-            // toast.promise will pass the resolved value to this function
-            return "Avatar updated!";
-          },
-          error: (err) => err?.response?.data?.message || "Failed to upload avatar",
-        }
-      );
-
-      const data = res.data;
-      setAvatarPreview(data.avatar);
-
-      if (setUser && user) {
-        setUser({ ...user, avatar: data.avatar });
-      }
+      const { data } = await api.get("/orders/myorders");
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Avatar upload failed", err);
-      // toast already shown by toast.promise, but keep console for debugging
+      console.error("Failed to load orders", err);
+      setOrdersError(
+        err?.response?.data?.message || "Failed to load your orders."
+      );
+      toast.error(
+        err?.response?.data?.message || "Failed to load your orders."
+      );
+      setOrders([]);
+    } finally {
+      setOrdersLoading(false);
     }
   };
+
+  loadOrders();
+}, [tab, user]);
+
+
+  // AVATAR UPLOAD (toast.promise)
+const uploadAvatar = async (file) => {
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    toast.error("Only image files are allowed");
+    return;
+  }
+
+  const form = new FormData();
+  form.append("avatar", file);
+
+  try {
+    const res = await toast.promise(
+      api.post("/auth/avatar", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      }),
+      {
+        loading: "Uploading avatar...",
+        success: "Avatar updated!",
+        error: (err) =>
+          err?.response?.data?.message || "Failed to upload avatar",
+      }
+    );
+
+    const avatarObj = res.data.avatar;
+
+    setAvatarPreview(avatarObj);
+
+    setUser((prev) => ({
+      ...(prev ?? user ?? {}),
+      avatar: avatarObj,
+    }));
+  } catch (err) {
+    console.error("Avatar upload failed", err);
+  }
+};
+
 
   // SAVE PROFILE (name, email, addresses) with toast.promise
   const saveProfile = async () => {
@@ -250,12 +262,16 @@ export default function Profile() {
                   title="Upload avatar"
                 >
                   <FiCamera className="text-gray-600" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => uploadAvatar(e.target.files?.[0])}
-                  />
+<input
+  type="file"
+  accept="image/*"
+  className="hidden"
+  onChange={(e) => {
+    uploadAvatar(e.target.files?.[0]);
+    e.target.value = "";
+  }}
+/>
+
                 </label>
               </div>
 

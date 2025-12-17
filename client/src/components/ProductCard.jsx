@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 
 export default function ProductCard({
   product,
-  inWishlist: _initialInWishlist = false,
+  // inWishlist: _initialInWishlist = false,
   onWishlistChange: _onWishlistChange,
 }) {
   const navigate = useNavigate();
@@ -17,9 +17,9 @@ export default function ProductCard({
   const wish = productId ? isInWishlist(productId) : false;
 
   const imgObj = product?.images?.[0] || {};
-  const rawUrl = imgObj.url || imgObj.filename || imgObj.path || null;
+  // const rawUrl = imgObj.url || imgObj.filename || imgObj.path || null;
   const img =
-    normalizeMediaUrl(rawUrl) ||
+    normalizeMediaUrl(imgObj) ||
     "https://via.placeholder.com/400x400.png?text=No+Image";
 
   const handleToggleWishlist = async (e) => {
@@ -120,7 +120,7 @@ export default function ProductCard({
             <div className="flex items-center text-gold gap-1">
               <FiStar className="fill-gold text-gold" size={16} />
               <span className="text-sm text-textmuted">
-                {product?.rating || "4.7"}
+                {product?.rating?.toFixed?.(1) ?? "0.0"}
               </span>
             </div>
           </div>

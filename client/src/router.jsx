@@ -4,7 +4,6 @@ import { createBrowserRouter } from "react-router-dom";
 
 import App from "./App";
 
-// pages (CASE MUST MATCH FILE NAMES)
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import ProductPage from "./pages/ProductPage";
@@ -16,6 +15,7 @@ import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import OrderSuccess from "./pages/OrderSuccess";
 import Wishlist from "./pages/wishlist";
+import NotFound from "./pages/NotFound";
 
 // admin
 import AdminDashboard from "./components/Admin/AdminDashboard";
@@ -39,6 +39,7 @@ export default function createAppRouter() {
           { path: "profile", element: <Profile /> },
           { path: "wishlist", element: <Wishlist /> },
           { path: "admin/*", element: <AdminDashboard /> },
+          { path: "*", element: <NotFound /> },
         ],
       },
     ],

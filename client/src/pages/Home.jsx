@@ -78,25 +78,26 @@ export default function Home() {
     };
   }, []);
 
-  const normalizeRaw = (raw) =>
-    // normalizeMediaUrl can accept url string or object depending on your helpers
-    normalizeMediaUrl(raw) || normalizeMediaUrl(getPlaceholder("image"));
+const normalizeRaw = (media) =>
+  normalizeMediaUrl(media) || normalizeMediaUrl(getPlaceholder("image"));
+
 
   const slides = useMemo(() => {
     if (products && products.length >= 3) {
       return products.slice(0, 3).map((p) => {
         // support different image shapes (object or string)
-        const first = p.images?.[0];
-        const rawImage =
-          (first && (first.url || first.filename || first.path)) || first || null;
-        return {
-          id: p._id || p.id,
-          title: p.title,
-          subtitle: p.brand || "",
-          image: normalizeRaw(rawImage),
-          ctaText: "Shop now",
-          ctaLink: `/product/${p._id || p.id}`,
-        };
+        // const first = p.images?.[0];
+        // const rawImage =
+        //   (first && (first.url || first.filename || first.path)) || first || null;
+return {
+  id: p._id || p.id,
+  title: p.title,
+  subtitle: p.brand || "",
+  image: normalizeRaw(p.images?.[0]),
+  ctaText: "Shop now",
+  ctaLink: `/product/${p._id || p.id}`,
+};
+
       });
     }
 

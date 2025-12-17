@@ -2,14 +2,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AiOutlineLeft, AiOutlineRight } from "react-icons/ai";
 import { Link } from "react-router-dom";
-import { normalizeMediaUrl, getMediaType, getPlaceholder, getBackendRoot } from "../utils/media";
+import { normalizeMediaUrl, getMediaType, getPlaceholder } from "../utils/media";
+
 
 
 export default function Carousel({ slides = [], autoplay = 4500, heightClass = "h-56 sm:h-72 lg:h-96", debug = false }) {
   const [index, setIndex] = useState(0);
   const intervalRef = useRef(null);
   const slideCount = slides?.length || 0;
-  const backendRoot = getBackendRoot();
+  // const backendRoot = getBackendRoot();
 
   useEffect(() => {
     if (!autoplay || slideCount <= 1) return;
@@ -32,23 +33,27 @@ export default function Carousel({ slides = [], autoplay = 4500, heightClass = "
   const placeholderVideo = getPlaceholder("video");
 
   // Build final absolute URL (defensive)
-  const finalSrcFor = (raw) => {
-    const cand = normalizeMediaUrl(raw);
-    if (cand && typeof cand === "string") {
-      if (cand.startsWith("/")) return `${backendRoot}${cand.replace(/^\/+/, "/")}`;
-      return cand;
-    }
-    if (!raw) return null;
-    if (typeof raw === "string") {
-      if (/^https?:\/\//i.test(raw)) return raw;
-      if (raw.startsWith("/")) return `${backendRoot}${raw}`;
-      if (raw.startsWith("uploads/")) return `${backendRoot}/${raw}`;
-      return `${backendRoot}/uploads/${raw}`;
-    }
-    if (raw && typeof raw === "object") {
-      return finalSrcFor(raw.url || raw.path || raw.filename);
-    }
-    return null;
+  // const finalSrcFor = (raw) => {
+  //   const cand = normalizeMediaUrl(raw);
+  //   if (cand && typeof cand === "string") {
+  //     if (cand.startsWith("/")) return `${backendRoot}${cand.replace(/^\/+/, "/")}`;
+  //     return cand;
+  //   }
+  //   if (!raw) return null;
+  //   if (typeof raw === "string") {
+  //     if (/^https?:\/\//i.test(raw)) return raw;
+  //     if (raw.startsWith("/")) return `${backendRoot}${raw}`;
+  //     if (raw.startsWith("uploads/")) return `${backendRoot}/${raw}`;
+  //     return `${backendRoot}/uploads/${raw}`;
+  //   }
+  //   if (raw && typeof raw === "object") {
+  //     return finalSrcFor(raw.url || raw.path || raw.filename);
+  //   }
+  //   return null;
+  // };
+   const finalSrcFor = (raw) => {
+   // Cloudinary-safe: normalizeMediaUrl already returns absolute URL
+    return normalizeMediaUrl(raw) || null;
   };
 
   const activeRaw = (() => {

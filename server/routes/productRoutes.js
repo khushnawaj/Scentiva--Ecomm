@@ -31,7 +31,7 @@ router.post(
   protect,
   admin,
   upload.array("images", 5),
-  parseNumbers(["price", "stock"]),       // convert strings → numbers
+parseNumbers(["price", "stock", "discountPrice"]),
   validate(createProductSchema),
   createProduct
 );

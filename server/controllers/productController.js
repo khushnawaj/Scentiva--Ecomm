@@ -3,30 +3,30 @@ const asyncHandler = require('express-async-handler');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 const mongoose = require('mongoose');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../config/cloudinary');
+
 
 /**
  * Helper: build full URL for uploaded file
  */
-const buildFileUrl = (req, filename) => {
-  if (!req || !req.get) return `/uploads/${filename}`;
-  const protocol = req.protocol;
-  const host = req.get('host');
-  return `${protocol}://${host}/uploads/${filename}`;
-};
+// const buildFileUrl = (req, filename) => {
+//   if (!req || !req.get) return `/uploads/${filename}`;
+//   const protocol = req.protocol;
+//   const host = req.get('host');
+//   return `${protocol}://${host}/uploads/${filename}`;
+// };
 
 /**
  * Helper: safe unlink (synchronous, best-effort)
  */
-const safeUnlink = (filePath) => {
-  try {
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  } catch (err) {
-    // intentionally swallow - log for debug
-    console.warn('safeUnlink error:', err.message);
-  }
-};
+// const safeUnlink = (filePath) => {
+//   try {
+//     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+//   } catch (err) {
+//     // intentionally swallow - log for debug
+//     console.warn('safeUnlink error:', err.message);
+//   }
+// };
 
 /**
  * POST /api/products
@@ -49,8 +49,8 @@ const createProduct = asyncHandler(async (req, res) => {
 
   // map files to objects - store full accessible URLs and filename for cleanup
   const images = files.map(file => ({
-    url: buildFileUrl(req, file.filename),
-    filename: file.filename
+    url: file.path,
+    public_id:file.filename
   }));
 
   // ⭐ Auto-generate SKU only if not provided
@@ -183,10 +183,12 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   // If new files uploaded, append them to existing images
   if (req.files && req.files.length) {
-    const newImages = req.files.map(f => ({
-      url: buildFileUrl(req, f.filename),
-      filename: f.filename
+
+    const newImages = req.files.map(file => ({
+      url: file.path,
+     public_id:file.filename
     }));
+
     product.images = Array.isArray(product.images)
       ? [...product.images, ...newImages]
       : newImages;
@@ -215,21 +217,27 @@ const deleteProduct = asyncHandler(async (req, res) => {
   }
 
   // unlink files from disk (best effort)
-  if (product.images && Array.isArray(product.images)) {
-    for (const img of product.images) {
-      try {
-        // prefer filename if saved, otherwise derive from URL
-        const filename = img.filename || path.basename(img.url || '');
-        if (!filename) continue;
-        const filePath = path.join(__dirname, '..', 'uploads', filename);
-        safeUnlink(filePath);
-      } catch (err) {
-        console.warn('Error unlinking file:', err.message);
-      }
+  // if (product.images && Array.isArray(product.images)) {
+  //   for (const img of product.images) {
+  //     try {
+  //       // prefer filename if saved, otherwise derive from URL
+  //       const filename = img.filename || path.basename(img.url || '');
+  //       if (!filename) continue;
+  //       const filePath = path.join(__dirname, '..', 'uploads', filename);
+  //       safeUnlink(filePath);
+  //     } catch (err) {
+  //       console.warn('Error unlinking file:', err.message);
+  //     }
+  //   }
+  // }
+  if (product.images?.length) {
+  for (const img of product.images) {
+    if (img.public_id) {
+      await cloudinary.uploader.destroy(img.public_id);
     }
   }
-
-  await product.remove();
+}
+await product.deleteOne();
   res.json({ message: 'Product removed' });
 });
 

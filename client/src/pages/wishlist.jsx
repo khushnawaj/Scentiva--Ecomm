@@ -7,12 +7,8 @@ import { useWishlist } from "../contexts/WishlistContext";
 import toast from "react-hot-toast";
 
 export default function Wishlist() {
-  const {
-    wishlistItems,
-    wishlistLoading,
-    wishlistError,
-    toggleWishlist,
-  } = useWishlist();
+  const { wishlistItems, wishlistLoading, wishlistError, toggleWishlist } =
+    useWishlist();
 
   const [pendingRemove, setPendingRemove] = useState(null); // { productId, title }
   const [removingId, setRemovingId] = useState(null);
@@ -20,24 +16,15 @@ export default function Wishlist() {
   const navigate = useNavigate();
 
   // When ProductCard calls onWishlistChange(productId, newInWishlist)
-  const handleWishlistChange = async (productId, inWishlist) => {
-    if (!inWishlist) {
-      const product = wishlistItems.find((p) => (p._id || p.id) === productId);
-      setPendingRemove({
-        productId,
-        title: product?.title ?? "this item",
-      });
-      return;
-    }
+const handleWishlistChange = (productId) => {
+  const product = wishlistItems.find((p) => (p._id || p.id) === productId);
 
-    // Add (rare case)
-    try {
-      await toggleWishlist(productId);
-    } catch (err) {
-      console.error("Failed to add to wishlist:", err);
-      toast.error("Failed to update wishlist");
-    }
-  };
+  setPendingRemove({
+    productId,
+    title: product?.title ?? "this item",
+  });
+};
+
 
   // Confirm remove
   const confirmRemove = async () => {
@@ -47,8 +34,10 @@ export default function Wishlist() {
     setRemovingId(productId);
 
     try {
-      await toggleWishlist(productId); // context handles removal
-      toast("Removed from wishlist", { icon: "🗑️" });
+         const product = wishlistItems.find((p) => (p._id || p.id) === productId);
+   if (!product) throw new Error("Product not found");
+   await toggleWishlist(product);
+      toast("Removed from wishlist");
     } catch (err) {
       console.error("Failed remove:", err);
       toast.error("Failed to remove item");
@@ -128,7 +117,6 @@ export default function Wishlist() {
                 <ProductCard
                   key={p._id || p.id}
                   product={p}
-                  inWishlist={true}
                   onWishlistChange={handleWishlistChange}
                 />
               ))}

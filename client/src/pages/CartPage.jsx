@@ -188,10 +188,13 @@ export default function CartPage() {
                 const price = it.price ?? product.price ?? 0;
 
                 // FIXED IMAGE HANDLING
-                const imgObj = product.images?.[0] || {};
+                {/* const imgObj = product.images?.[0] || {};
                 const raw = imgObj.url || imgObj.filename || imgObj.path || null;
 
-                const imgSrc = normalizeMediaUrl(raw) || "/placeholder.png";
+                const imgSrc = normalizeMediaUrl(raw) || "/placeholder.png"; */}
+                const imgSrc =
+  normalizeMediaUrl(product.images?.[0]) || "/placeholder.png";
+
 
                 return (
                   <div

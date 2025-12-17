@@ -544,19 +544,20 @@ export default function CheckoutPage() {
               <div className="space-y-4 max-h-80 overflow-auto">
                 {(checkoutItems || []).map((it) => {
                   const p = it.product || {};
-                  const raw =
-                    p.images?.[0]?.url || p.images?.[0]?.filename || p.images?.[0]?.path || null;
+                  {/* const raw =
+                    p.images?.[0]?.url || p.images?.[0]?.filename || p.images?.[0]?.path || null; */}
 
                   return (
                     <div key={p._id} className="flex items-center gap-3">
-                      <img
-                        src={normalizeMediaUrl(raw) || "/placeholder.png"}
-                        alt={p.title}
-                        className="w-14 h-14 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.png";
-                        }}
-                      />
+<img
+  src={normalizeMediaUrl(p.images?.[0]) || "/placeholder.png"}
+  alt={p.title}
+  className="w-14 h-14 object-cover rounded"
+  onError={(e) => {
+    e.currentTarget.src = "/placeholder.png";
+  }}
+/>
+
 
                       <div className="flex-1">
                         <div className="font-medium">{p.title}</div>

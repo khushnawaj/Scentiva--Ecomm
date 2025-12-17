@@ -33,7 +33,9 @@ export default function OrderSuccess() {
         console.error("Failed to load order", err);
         if (!mounted) return;
         setError("Unable to load order details.");
-        toast.error(err?.response?.data?.message || "Unable to load order details.");
+        toast.error(
+          err?.response?.data?.message || "Unable to load order details."
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -97,12 +99,17 @@ export default function OrderSuccess() {
       // Nothing we can use — show helpful message
       console.warn("Retry payment response:", data);
       toast.dismiss(loadingToastId);
-      toast.error("Payment session could not be created. Please contact support.");
+      toast.error(
+        "Payment session could not be created. Please contact support."
+      );
     } catch (err) {
       console.error("Retry payment failed:", err);
       toast.dismiss(loadingToastId);
       const backendMsg = err?.response?.data?.message || err?.message;
-      toast.error(backendMsg || "Failed to initiate payment. Please try again or contact support.");
+      toast.error(
+        backendMsg ||
+          "Failed to initiate payment. Please try again or contact support."
+      );
     } finally {
       setRetryLoading(false);
     }
@@ -137,7 +144,9 @@ export default function OrderSuccess() {
 
   const shipping = order?.shippingAddress ?? {};
   const items = Array.isArray(order?.orderItems) ? order.orderItems : [];
-  const createdAt = order?.createdAt ? new Date(order.createdAt).toLocaleString("en-IN") : "";
+  const createdAt = order?.createdAt
+    ? new Date(order.createdAt).toLocaleString("en-IN")
+    : "";
 
   const statusKey = (order?.status || "pending").toString().toLowerCase();
   const statusInfo = (key) => {
@@ -148,21 +157,24 @@ export default function OrderSuccess() {
         return {
           emoji: "✅",
           label: "Paid",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800",
           message: "Payment received. Your order will be processed shortly.",
         };
       case "processing":
         return {
           emoji: "⏳",
           label: "Processing",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800",
           message: "We are preparing your order.",
         };
       case "pending":
         return {
           emoji: "🕒",
           label: "Pending",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800",
           message: "Payment is pending or confirmation is awaited.",
         };
       case "failed":
@@ -170,7 +182,8 @@ export default function OrderSuccess() {
         return {
           emoji: "❌",
           label: "Payment failed",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-800",
           message:
             order?.paymentResult?.message ||
             "Payment failed. You can retry payment or contact support.",
@@ -180,21 +193,24 @@ export default function OrderSuccess() {
         return {
           emoji: "🛑",
           label: "Cancelled",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-800",
           message: "This order was cancelled.",
         };
       case "refunded":
         return {
           emoji: "💸",
           label: "Refunded",
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100 text-teal-800",
           message: "This order has been refunded.",
         };
       default:
         return {
           emoji: "📦",
           label: key,
-          classes: "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-800",
+          classes:
+            "inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 text-gray-800",
           message: "",
         };
     }
@@ -228,7 +244,8 @@ export default function OrderSuccess() {
               <span className="text-sm font-medium">{s.label}</span>
             </span>
             <span className="text-xs text-gray-500">
-              Order ID: <span className="font-mono">{order._id}</span> • {createdAt}
+              Order ID: <span className="font-mono">{order._id}</span> •{" "}
+              {createdAt}
             </span>
           </div>
 
@@ -251,10 +268,19 @@ export default function OrderSuccess() {
 
           <div className="space-y-3 max-h-64 overflow-auto pr-2">
             {items.length === 0 && (
-              <div className="text-sm text-gray-500">No items listed for this order.</div>
+              <div className="text-sm text-gray-500">
+                No items listed for this order.
+              </div>
             )}
             {items.map((item) => {
-              const img = normalizeMediaUrl(item.image) || "/placeholder.png";
+              const raw =
+                item.image?.url ||
+                item.image?.path ||
+                item.image?.filename ||
+                item.image ||
+                null;
+
+              const img = normalizeMediaUrl(raw) || "/placeholder.png";
               return (
                 <div
                   key={item.product || item.title}
@@ -269,7 +295,9 @@ export default function OrderSuccess() {
                     }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{item.title ?? "Untitled"}</div>
+                    <div className="font-medium truncate">
+                      {item.title ?? "Untitled"}
+                    </div>
                     <div className="text-gray-500">
                       Qty: {item.qty ?? 1} • {fmt(item.price ?? 0)}
                     </div>
@@ -294,7 +322,9 @@ export default function OrderSuccess() {
             <div className="flex justify-between text-gray-600">
               <span>Shipping</span>
               <span>
-                {order.shippingPrice === 0 ? "Free" : fmt(order.shippingPrice ?? 0)}
+                {order.shippingPrice === 0
+                  ? "Free"
+                  : fmt(order.shippingPrice ?? 0)}
               </span>
             </div>
             <div className="flex justify-between font-bold text-lg mt-2">
@@ -311,11 +341,16 @@ export default function OrderSuccess() {
             <div className="text-gray-700">
               <div>{shipping?.fullName ?? "Name not available"}</div>
               {shipping?.phone && <div>📞 {shipping.phone}</div>}
-              <div>{shipping?.addressLine1 ?? shipping?.address ?? "Address not available"}</div>
+              <div>
+                {shipping?.addressLine1 ??
+                  shipping?.address ??
+                  "Address not available"}
+              </div>
               {shipping?.addressLine2 && <div>{shipping.addressLine2}</div>}
               <div>
-                {shipping?.city ?? ""}{shipping?.city && shipping?.state ? ", " : ""}{shipping?.state ?? ""}{" "}
-                {shipping?.postalCode ?? ""}
+                {shipping?.city ?? ""}
+                {shipping?.city && shipping?.state ? ", " : ""}
+                {shipping?.state ?? ""} {shipping?.postalCode ?? ""}
               </div>
               <div>{shipping?.country ?? ""}</div>
             </div>
@@ -325,13 +360,25 @@ export default function OrderSuccess() {
             <div className="mt-3 text-xs text-gray-500">
               <div>
                 Status:{" "}
-                <span className="font-medium capitalize">{order.status ?? "pending"}</span>
+                <span className="font-medium capitalize">
+                  {order.status ?? "pending"}
+                </span>
               </div>
-              {s.message && <div className="mt-1 text-sm text-gray-600">{s.message}</div>}
+              {s.message && (
+                <div className="mt-1 text-sm text-gray-600">{s.message}</div>
+              )}
               {order?.paymentResult?.status && (
                 <div className="mt-2 text-xs text-gray-500">
-                  Payment gateway status: <span className="font-medium">{order.paymentResult.status}</span>
-                  {order.paymentResult?.message && <> — <span>{order.paymentResult.message}</span></>}
+                  Payment gateway status:{" "}
+                  <span className="font-medium">
+                    {order.paymentResult.status}
+                  </span>
+                  {order.paymentResult?.message && (
+                    <>
+                      {" "}
+                      — <span>{order.paymentResult.message}</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -347,7 +394,10 @@ export default function OrderSuccess() {
                   {retryLoading ? "Preparing payment…" : "Retry payment"}
                 </button>
 
-                <Link to="/orders" className="px-4 py-2 rounded-lg border text-sm">
+                <Link
+                  to="/orders"
+                  className="px-4 py-2 rounded-lg border text-sm"
+                >
                   View orders
                 </Link>
               </div>

@@ -12,11 +12,11 @@ import {
   FiEdit,
   FiSave,
   FiSettings,
-  FiTag,
+  // FiTag,
   FiDollarSign,
   FiPackage,
   FiStar,
-  FiHash,
+  // FiHash,
 } from "react-icons/fi";
 
 /**
@@ -172,7 +172,7 @@ const CategoryManagerModal = ({
 export default function ProductForm() {
   // form state
   const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
+  // const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [discountPrice, setDiscountPrice] = useState("");
@@ -241,7 +241,7 @@ export default function ProductForm() {
   const onFilesSelected = (selectedFiles) => {
     if (!selectedFiles) return;
     const arr = Array.from(selectedFiles);
-    const mergedFiles = [...files, ...arr].slice(0, 8);
+    const mergedFiles = [...files, ...arr].slice(0, 5);
     setFiles(mergedFiles);
 
     const newPreviews = arr.map((f, idx) => ({
@@ -250,7 +250,7 @@ export default function ProductForm() {
       name: f.name,
       size: f.size,
     }));
-    setPreviews((p) => [...p, ...newPreviews].slice(0, 8));
+    setPreviews((p) => [...p, ...newPreviews].slice(0, 5));
     toast.success(`${arr.length} file(s) added`);
   };
 
@@ -274,23 +274,23 @@ export default function ProductForm() {
   };
 
   // auto slug from title
-  useEffect(() => {
-    if (!title) {
-      setSlug("");
-      return;
-    }
-    const s = title
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .slice(0, 100);
-    setSlug(s);
-  }, [title]);
+  // useEffect(() => {
+  //   if (!title) {
+  //     setSlug("");
+  //     return;
+  //   }
+  //   const s = title
+  //     .toLowerCase()
+  //     .trim()
+  //     .replace(/[^\w\s-]/g, "")
+  //     .replace(/\s+/g, "-")
+  //     .slice(0, 100);
+  //   setSlug(s);
+  // }, [title]);
 
   const resetForm = () => {
     setTitle("");
-    setSlug("");
+    // setSlug("");
     setDescription("");
     setPrice("");
     setDiscountPrice("");
@@ -331,7 +331,7 @@ export default function ProductForm() {
 
     const form = new FormData();
     form.append("title", title);
-    form.append("slug", slug || title);
+    // form.append("slug", slug || title);
     form.append("description", description);
     form.append("price", price);
     if (discountPrice) form.append("discountPrice", discountPrice);
@@ -585,7 +585,7 @@ export default function ProductForm() {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Product Slug
               </label>
@@ -596,7 +596,7 @@ export default function ProductForm() {
                 className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-wax focus:border-transparent text-sm sm:text-base"
               />
               <p className="text-xs text-gray-500">Auto-generated from title</p>
-            </div>
+            </div> */}
 
             <div className="lg:col-span-2 space-y-2">
               <label className="text-sm font-medium text-gray-700">
@@ -781,7 +781,7 @@ export default function ProductForm() {
                 onChange={(e) => onFilesSelected(e.target.files)}
               />
               <div className="text-sm text-gray-600">
-                Supports PNG, JPG up to 8 files
+                Supports PNG, JPG up to 5 files
               </div>
             </div>
 

@@ -117,7 +117,12 @@ export default function Navbar() {
     : null;
 
   // compute avatar src (normalizeMediaUrl) and fallback
-  const avatarSrc = user?.avatar ? normalizeMediaUrl(user.avatar, { typeHint: "image" }) : null;
+const avatarSrc = user?.avatar
+  ? normalizeMediaUrl(
+      user.avatar.url || user.avatar.filename || user.avatar.path || user.avatar,
+      { typeHint: "image" }
+    )
+  : null;
 
   // Pulse when counts change (subtle UX)
   useEffect(() => {
