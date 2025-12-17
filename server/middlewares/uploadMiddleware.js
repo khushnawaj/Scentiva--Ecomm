@@ -10,10 +10,9 @@ const storage = new CloudinaryStorage({
     return {
       folder: isVideo ? "videos" : "images",
       resource_type: isVideo ? "video" : "image",
-      public_id: `${Date.now()}_${file.originalname.split(".")[0]}`,
-      allowed_formats: isVideo
-        ? ["mp4", "mov", "avi", "mkv", "webm"]
-        : ["jpg", "jpeg", "png", "webp"],
+
+      // ⚠️ DO NOT set public_id manually
+      // ⚠️ DO NOT set allowed_formats here
     };
   },
 });
@@ -31,8 +30,11 @@ const fileFilter = (req, file, cb) => {
     "video/webm",
   ];
 
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Only image & video files are allowed"), false);
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image & video files are allowed"), false);
+  }
 };
 
 const upload = multer({
