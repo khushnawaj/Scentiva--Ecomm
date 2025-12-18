@@ -1,3 +1,11 @@
+## 🚧 Work in Progress
+
+- [ ] Featured products carousel
+- [ ] Product image replace on edit
+- [ ] Admin dashboard analytics
+- [ ] Order status filters
+
+
 # MERN E-commerce
 
 This repository contains a more complete MERN e-commerce starter.
