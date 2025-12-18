@@ -18,6 +18,7 @@ import {
   FiStar,
   // FiHash,
 } from "react-icons/fi";
+import { useNavigate, useParams } from "react-router-dom";
 
 /**
  * Admin ProductForm — Scentiva themed
@@ -63,7 +64,10 @@ const CategoryManagerModal = ({
         </div>
 
         {/* Add Category Form */}
-        <form onSubmit={handleAddCategory} className="flex flex-col sm:flex-row gap-2">
+        <form
+          onSubmit={handleAddCategory}
+          className="flex flex-col sm:flex-row gap-2"
+        >
           <input
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
@@ -91,7 +95,9 @@ const CategoryManagerModal = ({
             Existing Categories ({categories.length})
           </p>
           {catLoading && categories.length === 0 && (
-            <div className="text-gray-500 text-sm py-2">Loading categories...</div>
+            <div className="text-gray-500 text-sm py-2">
+              Loading categories...
+            </div>
           )}
           <ul className="space-y-2">
             {categories.map((c) => (
@@ -100,7 +106,10 @@ const CategoryManagerModal = ({
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors group"
               >
                 {editingCategory && editingCategory._id === c._id ? (
-                  <form onSubmit={handleUpdateCategory} className="flex-grow flex gap-2 items-center">
+                  <form
+                    onSubmit={handleUpdateCategory}
+                    className="flex-grow flex gap-2 items-center"
+                  >
                     <input
                       value={editCategoryName}
                       onChange={(e) => setEditCategoryName(e.target.value)}
@@ -129,7 +138,9 @@ const CategoryManagerModal = ({
                   </form>
                 ) : (
                   <>
-                    <span className="text-sm font-medium text-gray-800 truncate pr-2">{c.name}</span>
+                    <span className="text-sm font-medium text-gray-800 truncate pr-2">
+                      {c.name}
+                    </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
@@ -181,6 +192,9 @@ export default function ProductForm() {
   const [stock, setStock] = useState(0);
   const [isFeatured, setIsFeatured] = useState(false);
   const [sku, setSku] = useState("");
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(id);
 
   // images
   const [files, setFiles] = useState([]);
@@ -233,9 +247,50 @@ export default function ProductForm() {
   // cleanup previews on unmount
   useEffect(() => {
     return () => {
-      previews.forEach((p) => URL.revokeObjectURL(p.url));
+      previews.forEach((p) => {
+        if (p.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(p.url);
+        }
+      });
     };
   }, [previews]);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    async function fetchProduct() {
+      try {
+        const { data } = await api.get(`/products/${id}`);
+
+        setTitle(data.title || "");
+        setDescription(data.description || "");
+        setPrice(data.price || "");
+        setDiscountPrice(data.discountPrice || "");
+        setBrand(data.brand || "");
+        setCategory(data.category?._id || "");
+        setStock(data.stock || 0);
+        setIsFeatured(Boolean(data.isFeatured));
+        setSku(data.sku || "");
+
+        // Existing images → previews only (no re-upload)
+        if (Array.isArray(data.images)) {
+          setPreviews(
+            data.images.map((img, idx) => ({
+              id: `existing-${idx}`,
+              url: img.url,
+              name: "Existing Image",
+              existing: true,
+            }))
+          );
+        }
+      } catch (err) {
+        toast.error("Failed to load product for editing");
+        console.error(err);
+      }
+    }
+
+    fetchProduct();
+  }, [id, isEditMode]);
 
   // handle selected files
   const onFilesSelected = (selectedFiles) => {
@@ -256,20 +311,23 @@ export default function ProductForm() {
 
   const removePreview = (id) => {
     setPreviews((prev) => {
-      const idx = prev.findIndex((x) => x.id === id);
-      if (idx >= 0) {
-        URL.revokeObjectURL(prev[idx].url);
+      const target = prev.find((p) => p.id === id);
+
+      // revoke only blob urls
+      if (target?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(target.url);
       }
-      const newP = prev.filter((x) => x.id !== id);
-      setFiles((f) => {
-        const copy = [...f];
-        if (idx >= 0 && idx < copy.length) {
-          copy.splice(idx, 1);
-        }
-        return copy;
-      });
+
+      // remove preview
+      const newPreviews = prev.filter((p) => p.id !== id);
+
+      // remove file only if NOT existing image
+      if (!target?.existing) {
+        setFiles((f) => f.slice(0, f.length - 1));
+      }
+
       toast("Image removed");
-      return newP;
+      return newPreviews;
     });
   };
 
@@ -299,7 +357,11 @@ export default function ProductForm() {
     setStock(0);
     setIsFeatured(false);
     setSku("");
-    previews.forEach((p) => URL.revokeObjectURL(p.url));
+    previews.forEach((p) => {
+      if (p.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(p.url);
+      }
+    });
     setFiles([]);
     setPreviews([]);
     setError(null);
@@ -345,18 +407,20 @@ export default function ProductForm() {
 
     try {
       setLoading(true);
-      const promise = api.post("/products", form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const promise = isEditMode
+        ? api.put(`/products/${id}`, form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+        : api.post("/products", form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
 
       const res = await toast.promise(promise, {
-        loading: "Creating product...",
-        success: (res) => {
-          const data = res?.data;
-          let msg = "Product created successfully!";
-          if (data && data._id) msg += ` (ID: ${data._id})`;
-          return msg;
-        },
+        loading: isEditMode ? "Updating product..." : "Creating product...",
+        success: () =>
+          isEditMode
+            ? "Product updated successfully!"
+            : "Product created successfully!",
         error: (err) =>
           err?.response?.data?.message ||
           err?.message ||
@@ -364,11 +428,15 @@ export default function ProductForm() {
       });
 
       setSuccessMsg(
-        typeof res === "object" && res.data
+        isEditMode
+          ? "Product updated successfully!"
+          : typeof res === "object" && res.data
           ? `Product created! (ID: ${res.data._id})`
           : "Product created!"
       );
-      resetForm();
+
+      // resetForm();
+      navigate("/admin/products");
     } catch (err) {
       console.error("Create product failed", err);
       const msg =
@@ -468,7 +536,9 @@ export default function ProductForm() {
           );
           if (category === categoryToDelete._id) {
             setCategory("");
-            toast.info(`Selected category "${categoryToDelete.name}" was deleted.`);
+            toast.info(
+              `Selected category "${categoryToDelete.name}" was deleted.`
+            );
           }
           setDeletingCategory(null);
           setConfirmOpen(false);
@@ -526,13 +596,14 @@ export default function ProductForm() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
-<h2 className="text-lg sm:text-xl font-semibold text-gray-900">
-  New Product
-</h2>
-<p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-  Add a product to your catalog
-</p>
-
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+            {isEditMode ? "Edit Product" : "New Product"}
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            {isEditMode
+              ? "Update product details"
+              : "Add a product to your catalog"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 hidden sm:inline">
@@ -566,11 +637,10 @@ export default function ProductForm() {
       <form onSubmit={submit} className="space-y-6">
         {/* Basic Information Card */}
         <div className="bg-white rounded-xl border p-4 sm:p-6">
-<h3 className="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wide">
-  Basic Information
-</h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3 uppercase tracking-wide">
+            Basic Information
+          </h3>
 
-          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
@@ -614,19 +684,21 @@ export default function ProductForm() {
         </div>
 
         {/* Pricing & Details Card */}
-<div className="bg-white rounded-lg border p-4">
+        <div className="bg-white rounded-lg border p-4">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <FiDollarSign className="text-wax" />
             Pricing & Details
           </h3>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Price (₹) *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  ₹
+                </span>
                 <input
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
@@ -645,7 +717,9 @@ export default function ProductForm() {
                 Discount Price (₹)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                  ₹
+                </span>
                 <input
                   value={discountPrice}
                   onChange={(e) => setDiscountPrice(e.target.value)}
@@ -686,8 +760,8 @@ export default function ProductForm() {
             <FiPackage className="text-wax" />
             Inventory & Category
           </h3>
-          
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Category *
@@ -761,7 +835,7 @@ export default function ProductForm() {
             <FiUpload className="text-wax" />
             Product Images
           </h3>
-          
+
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
               <label
@@ -802,6 +876,13 @@ export default function ProductForm() {
                         alt={p.name}
                         className="w-full h-full object-cover"
                       />
+
+                      {/* {p.existing && (
+                        <span className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded">
+                          Existing
+                        </span>
+                      )} */}
+
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                         <button
                           type="button"
@@ -851,12 +932,29 @@ export default function ProductForm() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
                   </svg>
                   Creating...
                 </span>
+              ) : isEditMode ? (
+                "Update Product"
               ) : (
                 "Create Product"
               )}

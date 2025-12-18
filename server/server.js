@@ -9,6 +9,7 @@ const testRoutes = require("./routes/testRoutes");
 const newsletterRoutes = require("./routes/newsletterRoutes");
 const wishlistRoutes = require("./routes/wishlistRouter");
 const couponRoutes = require("./routes/couponRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 
 
@@ -31,6 +32,7 @@ app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+
 app.use("/api/payment", paymentRoutes);
 //nodemailer
 app.use("/api", testRoutes);
@@ -40,6 +42,8 @@ app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 //coupons
 app.use("/api/coupons", couponRoutes);
+//adminDashboard
+app.use("/api/admin",adminRoutes)
 
 
 
