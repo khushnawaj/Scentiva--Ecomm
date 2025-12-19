@@ -1,8 +1,21 @@
 # Changelog
 
 ## [Unreleased]
-- Featured products carousel issue
-- Image replace on product edit
+### Planned
+- Coupon / promo code system
+- Product ratings & reviews enhancements
+
+---
+
+## [1.0.1] – 2025-12-20
+### Fixed
+- Product image update lifecycle (existing / new / delete)
+- Cloudinary image cleanup on product update & delete
+- Navbar profile avatar rendering issue on mobile
+- Image replace issue on product edit
+- Featured products carousel issue in production
+
+---
 
 ## [1.0.0] – 2025-12-19
 ### Added
