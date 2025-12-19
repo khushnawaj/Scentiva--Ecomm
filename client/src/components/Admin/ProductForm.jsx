@@ -1,5 +1,6 @@
 // client/src/pages/admin/ProductForm.jsx
 import React, { useEffect, useRef, useState } from "react";
+// { public_id }
 import api from "../../api/api";
 import ConfirmModal from "../ConfirmModal";
 import { toast } from "react-hot-toast";
@@ -181,6 +182,7 @@ const CategoryManagerModal = ({
 };
 
 export default function ProductForm() {
+  
   // form state
   const [title, setTitle] = useState("");
   // const [slug, setSlug] = useState("");
@@ -195,10 +197,11 @@ export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
-
+  
   // images
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
+  const [removedImages, setRemovedImages] = useState([]);
 
   // categories
   const [categories, setCategories] = useState([]);
@@ -274,14 +277,16 @@ export default function ProductForm() {
 
         // Existing images → previews only (no re-upload)
         if (Array.isArray(data.images)) {
-          setPreviews(
-            data.images.map((img, idx) => ({
-              id: `existing-${idx}`,
-              url: img.url,
-              name: "Existing Image",
-              existing: true,
-            }))
-          );
+setPreviews(
+  data.images.map((img) => ({
+    id: img.public_id,          // stable id
+    url: img.url,
+    name: "Existing Image",
+    existing: true,
+    public_id: img.public_id,   // 🔑 REQUIRED
+  }))
+);
+
         }
       } catch (err) {
         toast.error("Failed to load product for editing");
@@ -295,56 +300,73 @@ export default function ProductForm() {
   // handle selected files
   const onFilesSelected = (selectedFiles) => {
     if (!selectedFiles) return;
-    const arr = Array.from(selectedFiles);
-    const mergedFiles = [...files, ...arr].slice(0, 5);
-    setFiles(mergedFiles);
+const arr = Array.from(selectedFiles);
 
-    const newPreviews = arr.map((f, idx) => ({
-      id: `${Date.now()}-${f.name}-${idx}`,
-      url: URL.createObjectURL(f),
-      name: f.name,
-      size: f.size,
-    }));
-    setPreviews((p) => [...p, ...newPreviews].slice(0, 5));
-    toast.success(`${arr.length} file(s) added`);
+// how many new files are allowed
+const remainingSlots = 5 - files.length;
+if (remainingSlots <= 0) {
+  toast.error("Maximum 5 images allowed");
+  return;
+}
+
+// only take allowed files
+const allowedFiles = arr.slice(0, remainingSlots);
+
+setFiles((prev) => [...prev, ...allowedFiles]);
+
+const startIndex = previews.filter(p => !p.existing).length;
+
+const newPreviews = allowedFiles.map((f, idx) => ({
+  id: `${Date.now()}-${f.name}-${idx}`,
+  url: URL.createObjectURL(f),
+  name: f.name,
+  existing: false,
+  fileIndex: startIndex + idx,
+}));
+
+setPreviews((p) => [...p, ...newPreviews]);
+toast.success(`${allowedFiles.length} file(s) added`);
+
   };
 
-  const removePreview = (id) => {
-    setPreviews((prev) => {
-      const target = prev.find((p) => p.id === id);
+const removePreview = (id) => {
+  setPreviews((prev) => {
+    const target = prev.find((p) => p.id === id);
+    if (!target) return prev;
 
-      // revoke only blob urls
-      if (target?.url?.startsWith("blob:")) {
-        URL.revokeObjectURL(target.url);
-      }
+    // EXISTING IMAGE → mark for backend deletion
+    if (target.existing && target.public_id) {
+setRemovedImages((r) => {
+  if (r.some(img => img.public_id === target.public_id)) return r;
+  return [...r, { public_id: target.public_id }];
+});
+    }
 
-      // remove preview
-      const newPreviews = prev.filter((p) => p.id !== id);
+    // NEW IMAGE → remove correct file
+if (!target.existing && typeof target.fileIndex === "number") {
+  setFiles((files) =>
+    files.filter((_, i) => i !== target.fileIndex)
+  );
 
-      // remove file only if NOT existing image
-      if (!target?.existing) {
-        setFiles((f) => f.slice(0, f.length - 1));
-      }
+  if (target.url.startsWith("blob:")) {
+    URL.revokeObjectURL(target.url);
+  }
+}
 
-      toast("Image removed");
-      return newPreviews;
-    });
-  };
 
-  // auto slug from title
-  // useEffect(() => {
-  //   if (!title) {
-  //     setSlug("");
-  //     return;
-  //   }
-  //   const s = title
-  //     .toLowerCase()
-  //     .trim()
-  //     .replace(/[^\w\s-]/g, "")
-  //     .replace(/\s+/g, "-")
-  //     .slice(0, 100);
-  //   setSlug(s);
-  // }, [title]);
+    toast("Image removed");
+const updated = prev.filter((p) => p.id !== id);
+
+// reindex remaining new images
+let nextFileIndex = 0;
+return updated.map((p) => {
+  if (!p.existing) {
+    return { ...p, fileIndex: nextFileIndex++ };
+  }
+  return p;
+});
+  });
+};
 
   const resetForm = () => {
     setTitle("");
@@ -364,6 +386,7 @@ export default function ProductForm() {
     });
     setFiles([]);
     setPreviews([]);
+    setRemovedImages([]);
     setError(null);
     setSuccessMsg(null);
     toast.success("Form reset");
@@ -402,6 +425,21 @@ export default function ProductForm() {
     form.append("stock", String(stock));
     form.append("isFeatured", isFeatured ? "true" : "false");
     if (sku) form.append("sku", sku);
+
+    form.append(
+  "existingImages",
+  JSON.stringify(
+    previews
+      .filter((p) => p.existing)
+      .map((p) => ({
+        url: p.url,
+        public_id: p.public_id,
+      }))
+  )
+);
+
+form.append("removedImages", JSON.stringify(removedImages));
+
 
     files.forEach((f) => form.append("images", f));
 
@@ -655,19 +693,6 @@ export default function ProductForm() {
               />
             </div>
 
-            {/* <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Product Slug
-              </label>
-              <input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="product-slug"
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-wax focus:border-transparent text-sm sm:text-base"
-              />
-              <p className="text-xs text-gray-500">Auto-generated from title</p>
-            </div> */}
-
             <div className="lg:col-span-2 space-y-2">
               <label className="text-sm font-medium text-gray-700">
                 Description
@@ -863,12 +888,13 @@ export default function ProductForm() {
             {previews.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-3">
-                  Image Previews ({previews.length}/8)
+                  Image Previews ({previews.length}/5)
                 </p>
                 <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                   {previews.map((p, index) => (
                     <div
-                      key={p.id}
+                      key={`${p.existing ? "existing" : "new"}-${p.id}`}
+
                       className="relative group rounded-lg overflow-hidden border aspect-square bg-gray-50"
                     >
                       <img
@@ -876,12 +902,6 @@ export default function ProductForm() {
                         alt={p.name}
                         className="w-full h-full object-cover"
                       />
-
-                      {/* {p.existing && (
-                        <span className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded">
-                          Existing
-                        </span>
-                      )} */}
 
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
                         <button

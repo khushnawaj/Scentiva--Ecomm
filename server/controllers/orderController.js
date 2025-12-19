@@ -172,4 +172,40 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   res.json(updated);
 });
 
-module.exports = { createOrder, getMyOrders, getOrderById, updateOrderStatus };
+// GET /api/orders (admin) - paginated + filter
+const getAllOrdersAdmin = asyncHandler(async (req, res) => {
+  let { page = 1, limit = 10, keyword = "", status } = req.query;
+
+  page = Number(page);
+  limit = Number(limit);
+
+  const query = {};
+
+  if (status) query.status = status;
+
+  // allow search by order id
+  if (keyword) {
+    query.$or = [{ _id: keyword }];
+  }
+
+  const total = await Order.countDocuments(query);
+
+  const orders = await Order.find(query)
+    .populate("user", "name email")
+    .select(
+      "orderItems shippingAddress paymentMethod isPaid paidAt status deliveredAt totalPrice createdAt user"
+    )
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  res.json({
+    orders,
+    page,
+    pages: Math.ceil(total / limit),
+    total,
+  });
+});
+
+
+module.exports = { createOrder, getMyOrders, getOrderById, updateOrderStatus,getAllOrdersAdmin  };

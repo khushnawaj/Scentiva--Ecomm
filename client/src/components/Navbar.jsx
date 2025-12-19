@@ -291,14 +291,15 @@ const avatarSrc = user?.avatar
                 >
                   {/* Avatar (preferred) -> initials -> icon */}
                   {avatarSrc ? (
-                    <img
-                      src={avatarSrc}
-                      alt={user.name || "avatar"}
-                      className="w-8 h-8 rounded-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.png";
-                      }}
-                    />
+             <img
+  src={avatarSrc}
+  alt={user.name || "avatar"}
+  className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
+  onError={(e) => {
+    e.currentTarget.src = "/placeholder.png";
+  }}
+/>
+
                   ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-perfume/20 text-perfume font-semibold">
                       {initials || <FiUser />}
@@ -316,14 +317,15 @@ const avatarSrc = user?.avatar
                     <div className="px-4 py-3 border-b">
                       <div className="flex items-center gap-3">
                         {avatarSrc ? (
-                          <img
-                            src={avatarSrc}
-                            alt={user.name || "avatar"}
-                            className="w-10 h-10 rounded-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.png";
-                            }}
-                          />
+<img
+  src={avatarSrc}
+  alt={user.name || "avatar"}
+  className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
+  onError={(e) => {
+    e.currentTarget.src = "/placeholder.png";
+  }}
+/>
+
                         ) : (
                           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-perfume/20 text-perfume font-semibold">
                             {initials || <FiUser />}
