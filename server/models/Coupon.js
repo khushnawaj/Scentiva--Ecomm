@@ -8,29 +8,46 @@ const couponSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
+      index: true,
     },
-    description: String,
+
+    description: {
+      type: String,
+      trim: true,
+    },
+
     discountPercent: {
       type: Number,
-      required: true, // e.g. 10 for 10%
+      required: true,
       min: 1,
       max: 90,
     },
+
+    // 0 = no cap
     maxDiscount: {
       type: Number,
-      default: 0, // 0 = no cap
+      default: 0,
+      min: 0,
     },
+
     minOrderValue: {
       type: Number,
       default: 0,
+      min: 0,
     },
+
     expiresAt: {
       type: Date,
     },
+
     isActive: {
       type: Boolean,
       default: true,
     },
+
+    /* -------------------- FUTURE-READY (unused for now) -------------------- */
+    // usageLimit: { type: Number, min: 1 },
+    // usedCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

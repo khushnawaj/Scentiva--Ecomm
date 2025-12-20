@@ -9,25 +9,100 @@ const {
 const { sendEmail } = require("../utils/mailer");
 
 // POST /api/orders - create order from cart (e.g. COD / dummy)
+// POST /api/orders - create order from cart (COD / dummy)
 const createOrder = asyncHandler(async (req, res) => {
-  const { shippingAddress, paymentMethod } = req.body;
+  const { shippingAddress, paymentMethod, couponCode } = req.body;
 
   const cart = await Cart.findOne({ user: req.user._id }).populate(
     "items.product"
   );
+
   if (!cart || cart.items.length === 0) {
     res.status(400);
     throw new Error("Cart empty");
   }
 
+  /* -------------------------------------------------------------------------- */
+  /*                              PRICE CALCULATION                             */
+  /* -------------------------------------------------------------------------- */
   const itemsPrice = cart.items.reduce(
     (acc, it) => acc + it.product.price * it.qty,
     0
   );
+
   const taxPrice = +(itemsPrice * 0.05).toFixed(2);
   const shippingPrice = itemsPrice > 500 ? 0 : 50;
-  const totalPrice = +(itemsPrice + taxPrice + shippingPrice).toFixed(2);
 
+  /* -------------------------------------------------------------------------- */
+  /*                              COUPON VALIDATION                              */
+  /* -------------------------------------------------------------------------- */
+  let appliedCoupon = null;
+  let couponDiscount = 0;
+
+  if (couponCode) {
+    appliedCoupon = await Coupon.findOne({
+      code: couponCode.toUpperCase(),
+      isActive: true,
+    });
+
+    if (!appliedCoupon) {
+      res.status(400);
+      throw new Error("Invalid or inactive coupon");
+    }
+
+    if (appliedCoupon.expiresAt && appliedCoupon.expiresAt < new Date()) {
+      res.status(400);
+      throw new Error("Coupon expired");
+    }
+
+    if (itemsPrice < appliedCoupon.minOrderValue) {
+      res.status(400);
+      throw new Error(
+        `Minimum order value is ₹${appliedCoupon.minOrderValue}`
+      );
+    }
+
+    // Prevent reuse (per user)
+    const alreadyUsed = await Order.findOne({
+      user: req.user._id,
+      "coupon.code": appliedCoupon.code,
+    });
+
+    if (alreadyUsed) {
+      res.status(400);
+      throw new Error("Coupon already used");
+    }
+
+    // Calculate discount
+    couponDiscount =
+      (itemsPrice * appliedCoupon.discountPercent) / 100;
+
+    if (
+      appliedCoupon.maxDiscount > 0 &&
+      couponDiscount > appliedCoupon.maxDiscount
+    ) {
+      couponDiscount = appliedCoupon.maxDiscount;
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                              FINAL TOTAL                                   */
+  /* -------------------------------------------------------------------------- */
+  const totalPrice = +(
+    itemsPrice +
+    taxPrice +
+    shippingPrice -
+    couponDiscount
+  ).toFixed(2);
+
+  if (totalPrice < 0) {
+    res.status(400);
+    throw new Error("Invalid order total");
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /*                                CREATE ORDER                                 */
+  /* -------------------------------------------------------------------------- */
   const order = new Order({
     user: req.user._id,
     orderItems: cart.items.map((it) => ({
@@ -35,21 +110,35 @@ const createOrder = asyncHandler(async (req, res) => {
       title: it.product.title,
       qty: it.qty,
       price: it.product.price,
-      image: it.product.images[0]?.url || "",
+      image: it.product.images?.[0]?.url || "",
     })),
     shippingAddress,
     paymentMethod,
+
     itemsPrice,
     taxPrice,
     shippingPrice,
     totalPrice,
-    isPaid: paymentMethod !== "dummy", // e.g. COD/dummy vs prepaid
+
+    coupon: appliedCoupon
+      ? {
+          code: appliedCoupon.code,
+          discountPercent: appliedCoupon.discountPercent,
+          discountAmount: couponDiscount,
+        }
+      : undefined,
+
+    appliedCoupon: appliedCoupon?._id,
+
+    isPaid: paymentMethod !== "dummy",
     paidAt: paymentMethod !== "dummy" ? Date.now() : null,
   });
 
   const created = await order.save();
 
-  // reduce stock
+  /* -------------------------------------------------------------------------- */
+  /*                              STOCK REDUCTION                                */
+  /* -------------------------------------------------------------------------- */
   for (const it of cart.items) {
     const p = await Product.findById(it.product._id);
     if (p) {
@@ -58,11 +147,15 @@ const createOrder = asyncHandler(async (req, res) => {
     }
   }
 
-  // empty cart
+  /* -------------------------------------------------------------------------- */
+  /*                                CLEAR CART                                   */
+  /* -------------------------------------------------------------------------- */
   cart.items = [];
   await cart.save();
 
-  // 🔔 Order confirmation email (for non-dummy methods)
+  /* -------------------------------------------------------------------------- */
+  /*                            ORDER CONFIRMATION EMAIL                         */
+  /* -------------------------------------------------------------------------- */
   (async () => {
     try {
       if (paymentMethod !== "dummy") {
@@ -98,6 +191,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   res.status(201).json(created);
 });
+
 
 // GET /api/orders/myorders
 const getMyOrders = asyncHandler(async (req, res) => {

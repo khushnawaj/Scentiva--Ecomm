@@ -6,6 +6,7 @@ import {
   FiMail,
   FiPlus,
   FiGrid,
+  FiTag,
 } from "react-icons/fi";
 import clsx from "clsx";
 
@@ -14,16 +15,40 @@ import ProductForm from "./ProductForm";
 import OrderList from "./OrderList";
 import NewsletterList from "./NewsletterList";
 import DashboardStats from "./DashboardStats";
+import AdminCouponList from "./AdminCouponList";
+import AdminCouponForm from "./AdminCouponForm";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const tabs = [
-    { key: "dashboard", label: "Dashboard", icon: FiGrid, path: "/admin/dashboard" },
-    { key: "products", label: "Products", icon: FiBox, path: "/admin/products" },
-    { key: "orders", label: "Orders", icon: FiShoppingBag, path: "/admin/orders" },
-    { key: "newsletter", label: "Newsletter", icon: FiMail, path: "/admin/newsletter" },
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      icon: FiGrid,
+      path: "/admin/dashboard",
+    },
+    {
+      key: "products",
+      label: "Products",
+      icon: FiBox,
+      path: "/admin/products",
+    },
+    {
+      key: "orders",
+      label: "Orders",
+      icon: FiShoppingBag,
+      path: "/admin/orders",
+    },
+    { key: "coupons", label: "Coupons", icon: FiTag, path: "/admin/coupons" },
+
+    {
+      key: "newsletter",
+      label: "Newsletter",
+      icon: FiMail,
+      path: "/admin/newsletter",
+    },
   ];
 
   const isActive = (path) =>
@@ -90,6 +115,10 @@ export default function AdminDashboard() {
 
               {/* OTHER SECTIONS */}
               <Route path="orders" element={<OrderList />} />
+              <Route path="coupons" element={<AdminCouponList />} />
+              <Route path="coupons/new" element={<AdminCouponForm />} />
+              <Route path="coupons/:id/edit" element={<AdminCouponForm />} />
+
               <Route path="newsletter" element={<NewsletterList />} />
             </Routes>
           </div>

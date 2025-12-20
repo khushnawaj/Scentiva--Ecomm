@@ -1,57 +1,78 @@
-// client/src/pages/CartPage.jsx
-import React, { useContext, useMemo, useState } from "react";
+import React, {
+  useContext,
+  useMemo,
+  useState,
+  useEffect,
+} from "react";
 import { CartContext } from "../contexts/CartContext";
 import { Link, useNavigate } from "react-router-dom";
-import { FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
+import {
+  FiTrash2,
+  FiPlus,
+  FiMinus,
+  FiTag,
+  FiX,
+  FiInfo,
+} from "react-icons/fi";
 import { normalizeMediaUrl } from "../utils/media";
 import ConfirmModal from "../components/ConfirmModal";
+import api from "../api/api";
 import { toast } from "react-hot-toast";
 
-/**
- * CartPage - Scentiva Theme
- */
-
 export default function CartPage() {
-  const { cart = { items: [] }, addToCart, removeFromCart } = useContext(CartContext);
+  const { cart = { items: [] }, addToCart, removeFromCart } =
+    useContext(CartContext);
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
 
-  // Confirm modal state
+  /* ---------------- Coupon State ---------------- */
+  const [couponCode, setCouponCode] = useState("");
+  const [couponPreview, setCouponPreview] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMessage, setCouponMessage] = useState(null);
+
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+
+  /* ---------------- Fetch Public Coupons ---------------- */
+  useEffect(() => {
+    const loadCoupons = async () => {
+      try {
+        setCouponsLoading(true);
+        const { data } = await api.get("/coupons/public");
+        setAvailableCoupons(data || []);
+      } catch (err) {
+        console.error("Failed to load coupons");
+      } finally {
+        setCouponsLoading(false);
+      }
+    };
+    loadCoupons();
+  }, []);
+
+  /* ---------------- Confirm Modal ---------------- */
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: "Confirm",
     message: "",
-    confirmLabel: "Yes",
-    cancelLabel: "Cancel",
-    loading: false,
     resolve: null,
   });
 
-  // Promise-wrapped confirm helper
-  const confirm = (message, opts = {}) =>
-    new Promise((resolve) => {
-      setConfirmState({
-        open: true,
-        title: opts.title || "Confirm",
-        message,
-        confirmLabel: opts.confirmLabel || "Yes",
-        cancelLabel: opts.cancelLabel || "Cancel",
-        loading: false,
-        resolve,
-      });
-    });
+  const confirm = (message) =>
+    new Promise((resolve) =>
+      setConfirmState({ open: true, message, resolve })
+    );
 
   const onConfirm = () => {
-    if (confirmState.resolve) confirmState.resolve(true);
-    setConfirmState((s) => ({ ...s, open: false, resolve: null }));
+    confirmState.resolve?.(true);
+    setConfirmState({ open: false, message: "", resolve: null });
   };
 
   const onCancel = () => {
-    if (confirmState.resolve) confirmState.resolve(false);
-    setConfirmState((s) => ({ ...s, open: false, resolve: null }));
+    confirmState.resolve?.(false);
+    setConfirmState({ open: false, message: "", resolve: null });
   };
 
-  // Format INR
+  /* ---------------- INR Formatter ---------------- */
   const fmt = (v) =>
     new Intl.NumberFormat("en-IN", {
       style: "currency",
@@ -59,206 +80,197 @@ export default function CartPage() {
       maximumFractionDigits: 2,
     }).format(v);
 
-  // Compute totals
+  /* ---------------- Totals ---------------- */
   const totals = useMemo(() => {
     const itemsPrice = (cart.items || []).reduce((acc, it) => {
       const price = it.price ?? it.product?.price ?? 0;
-      const qty = it.qty ?? 0;
-      return acc + price * qty;
+      return acc + price * it.qty;
     }, 0);
 
     const tax = +(itemsPrice * 0.05).toFixed(2);
     const shipping = itemsPrice > 500 || itemsPrice === 0 ? 0 : 50;
-    const total = +(itemsPrice + tax + shipping).toFixed(2);
+    const discount = couponPreview?.discount || 0;
+    const total = +(itemsPrice + tax + shipping - discount).toFixed(2);
 
-    return { itemsPrice, tax, shipping, total };
-  }, [cart]);
+    return { itemsPrice, tax, shipping, discount, total };
+  }, [cart, couponPreview]);
 
-  // Update quantity (with toast.promise)
-  const updateQty = async (productId, newQty) => {
-    if (!productId) return;
-    if (newQty < 1) return;
-    setUpdatingId(productId);
-
-    const promise = addToCart(productId, newQty);
+  /* ---------------- Apply Coupon ---------------- */
+  const applyCoupon = async (codeOverride) => {
+    const codeToApply = (codeOverride || couponCode).trim();
+    if (!codeToApply) return;
 
     try {
-      await toast.promise(promise, {
+      setCouponLoading(true);
+      setCouponMessage(null);
+
+      const { data } = await api.post("/coupons/apply", {
+        code: codeToApply,
+      });
+
+      setCouponPreview(data);
+      setCouponCode(data.code);
+
+      setCouponMessage({
+        type: "success",
+        text: `Coupon applied. You saved ${fmt(data.discount)} 🎉`,
+      });
+
+      toast.success(`Coupon ${data.code} applied`);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || "Invalid or expired coupon";
+      setCouponPreview(null);
+      setCouponMessage({ type: "error", text: msg });
+      toast.error(msg);
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponPreview(null);
+    setCouponCode("");
+    setCouponMessage(null);
+    toast.success("Coupon removed");
+  };
+
+  /* ---------------- Quantity + Remove ---------------- */
+  const updateQty = async (pid, qty) => {
+    if (qty < 1) return;
+    setUpdatingId(pid);
+    try {
+      await toast.promise(addToCart(pid, qty), {
         loading: "Updating quantity…",
         success: "Quantity updated",
         error: "Unable to update quantity",
       });
-    } catch (err) {
-      // error message already shown by toast.promise
-      console.error("Failed to update qty", err);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  // Remove item (confirm modal + toast.promise)
-  const handleRemove = async (productId) => {
-    if (!productId) return;
+  const handleRemove = async (pid) => {
     const ok = await confirm("Remove this item from your cart?");
     if (!ok) return;
 
-    setUpdatingId(productId);
-    const promise = removeFromCart(productId);
-
+    setUpdatingId(pid);
     try {
-      await toast.promise(promise, {
+      await toast.promise(removeFromCart(pid), {
         loading: "Removing item…",
         success: "Item removed",
         error: "Unable to remove item",
       });
-    } catch (err) {
-      console.error("Remove failed", err);
     } finally {
       setUpdatingId(null);
     }
   };
 
-  // Empty cart UI
+  /* ---------------- Empty Cart ---------------- */
   if (!cart.items || cart.items.length === 0) {
     return (
       <>
         <ConfirmModal
           open={confirmState.open}
-          title={confirmState.title}
           message={confirmState.message}
-          confirmLabel={confirmState.confirmLabel}
-          cancelLabel={confirmState.cancelLabel}
-          loading={confirmState.loading}
           onConfirm={onConfirm}
           onCancel={onCancel}
         />
-
-        <div className="py-10 px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2
-              className="text-3xl font-semibold mb-6"
-              style={{ fontFamily: "'Playfair Display', serif", color: "#8B5E3C" }}
-            >
-              Your Cart
-            </h2>
-
-            <div className="bg-white card-cosset p-8 rounded-2xl text-center">
-              <p className="text-gray-700 mb-6">
-                Your cart is currently empty — discover our warm candles & gift boxes.
-              </p>
-              <Link to="/products" className="inline-block btn-primary">
-                Browse Products
-              </Link>
-            </div>
+        <div className="py-10 px-4 max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-semibold text-wax mb-6">
+            Your Cart
+          </h2>
+          <div className="bg-white card-cosset p-8 rounded-2xl">
+            <p className="text-gray-700 mb-6">
+              Your cart is currently empty.
+            </p>
+            <Link to="/products" className="btn-primary">
+              Browse Products
+            </Link>
           </div>
         </div>
       </>
     );
   }
 
+  /* ---------------- Render ---------------- */
   return (
     <>
       <ConfirmModal
         open={confirmState.open}
-        title={confirmState.title}
         message={confirmState.message}
-        confirmLabel={confirmState.confirmLabel}
-        cancelLabel={confirmState.cancelLabel}
-        loading={confirmState.loading}
         onConfirm={onConfirm}
         onCancel={onCancel}
       />
 
       <div className="py-10 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2
-            className="text-3xl font-semibold mb-6"
-            style={{ fontFamily: "'Playfair Display', serif", color: "#8B5E3C" }}
-          >
+          <h2 className="text-3xl font-semibold mb-6 text-wax">
             Your Cart
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Items */}
+            {/* ITEMS */}
             <div className="lg:col-span-2 space-y-4">
-              {(cart.items || []).map((it) => {
-                const product = it.product || {};
-                const productId = product._id;
-                const qty = it.qty ?? 1;
-                const price = it.price ?? product.price ?? 0;
-
-                // FIXED IMAGE HANDLING
-                {/* const imgObj = product.images?.[0] || {};
-                const raw = imgObj.url || imgObj.filename || imgObj.path || null;
-
-                const imgSrc = normalizeMediaUrl(raw) || "/placeholder.png"; */}
+              {cart.items.map((it) => {
+                const p = it.product || {};
                 const imgSrc =
-  normalizeMediaUrl(product.images?.[0]) || "/placeholder.png";
-
+                  normalizeMediaUrl(p.images?.[0]) ||
+                  "/placeholder.png";
 
                 return (
                   <div
-                    key={productId}
-                    className="flex gap-4 bg-white card-cosset rounded-2xl p-4 items-center"
+                    key={p._id}
+                    className="bg-white card-cosset rounded-2xl p-4 flex gap-4"
                   >
                     <img
                       src={imgSrc}
-                      alt={product.title || "Product image"}
-                      loading="lazy"
-                      className="w-28 h-28 object-cover rounded-md flex-shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.png";
-                      }}
+                      alt={p.title}
+                      className="w-28 h-28 object-cover rounded-md"
                     />
 
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1">
                       <Link
-                        to={`/product/${productId}`}
-                        className="font-medium text-wax text-lg hover:underline block truncate"
+                        to={`/product/${p._id}`}
+                        className="font-medium text-wax text-lg hover:underline"
                       >
-                        {product.title || "Product"}
+                        {p.title}
                       </Link>
 
-                      <div className="text-sm text-gray-500 mt-1 truncate">
-                        {product.description || ""}
-                      </div>
-
-                      {/* Quantity + Price */}
-                      <div className="mt-4 flex items-center justify-between gap-4">
-                        {/* Quantity controls */}
+                      <div className="mt-4 flex justify-between items-center">
                         <div className="flex items-center gap-2 bg-cream/60 rounded-md p-1">
                           <button
-                            aria-label="Decrease quantity"
-                            onClick={() => updateQty(productId, qty - 1)}
-                            disabled={updatingId === productId || qty <= 1}
-                            className="p-2 rounded border border-cream/40 hover:bg-cream/30 disabled:opacity-50"
+                            onClick={() =>
+                              updateQty(p._id, it.qty - 1)
+                            }
+                            disabled={it.qty <= 1}
+                            className="p-2 border rounded"
                           >
                             <FiMinus />
                           </button>
-
-                          <div className="px-4 py-1 font-medium">{qty}</div>
-
+                          <span className="px-3">{it.qty}</span>
                           <button
-                            aria-label="Increase quantity"
-                            onClick={() => updateQty(productId, qty + 1)}
-                            disabled={updatingId === productId}
-                            className="p-2 rounded border border-cream/40 hover:bg-cream/30"
+                            onClick={() =>
+                              updateQty(p._id, it.qty + 1)
+                            }
+                            className="p-2 border rounded"
                           >
                             <FiPlus />
                           </button>
                         </div>
 
-                        {/* Price + Remove */}
                         <div className="flex items-center gap-4">
-                          <div className="font-bold text-lg text-wax">{fmt(price * qty)}</div>
-
+                          <strong>
+                            {fmt(
+                              (it.price ?? p.price ?? 0) *
+                                it.qty
+                            )}
+                          </strong>
                           <button
-                            onClick={() => handleRemove(productId)}
-                            className="text-red-600 flex items-center gap-2 text-sm hover:underline"
-                            disabled={updatingId === productId}
+                            onClick={() => handleRemove(p._id)}
+                            className="text-red-600"
                           >
                             <FiTrash2 />
-                            <span className="hidden sm:inline">Remove</span>
                           </button>
                         </div>
                       </div>
@@ -268,25 +280,141 @@ export default function CartPage() {
               })}
             </div>
 
-            {/* Order summary */}
-            <aside className="bg-white card-cosset rounded-2xl p-6 shadow-sm">
-              <h3 className="text-xl font-semibold mb-4">Order summary</h3>
+            {/* SUMMARY */}
+            <aside className="bg-white card-cosset rounded-2xl p-6">
+              <h3 className="text-xl font-semibold mb-4">
+                Order summary
+              </h3>
 
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex justify-between">
-                  <span>Items ({cart.items.length})</span>
+                  <span>Items</span>
                   <span>{fmt(totals.itemsPrice)}</span>
                 </div>
-
                 <div className="flex justify-between">
                   <span>Tax (5%)</span>
                   <span>{fmt(totals.tax)}</span>
                 </div>
-
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>{totals.shipping === 0 ? "Free" : fmt(totals.shipping)}</span>
+                  <span>
+                    {totals.shipping === 0
+                      ? "Free"
+                      : fmt(totals.shipping)}
+                  </span>
                 </div>
+
+                {/* Coupon Input */}
+                {!couponPreview && (
+                  <div className="mt-3">
+                    <div className="flex gap-2">
+                      <input
+                        value={couponCode}
+                        onChange={(e) =>
+                          setCouponCode(
+                            e.target.value.toUpperCase()
+                          )
+                        }
+                        placeholder="Have a coupon?"
+                        className="flex-1 border px-3 py-2 rounded text-sm"
+                      />
+                      <button
+                        onClick={() => applyCoupon()}
+                        disabled={couponLoading}
+                        className="border px-3 rounded"
+                      >
+                        <FiTag />
+                      </button>
+                    </div>
+
+                    <div className="mt-1 text-xs text-gray-500 flex items-center gap-1">
+                      <FiInfo />
+                      Coupon terms apply. Min order & expiry may vary.
+                    </div>
+                  </div>
+                )}
+
+                {/* HORIZONTAL COUPON CAROUSEL */}
+                {!couponPreview &&
+                  !couponsLoading &&
+                  availableCoupons.length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-xs font-medium text-gray-600 mb-2">
+                        Available offers
+                      </div>
+
+                      <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                        {availableCoupons.map((c) => (
+                          <div
+                            key={c._id}
+                            className="min-w-[220px] max-w-[220px] border border-dashed border-gray-300 rounded-lg p-3 flex-shrink-0 hover:bg-cream/30 transition"
+                          >
+                            <div className="font-mono text-xs bg-cream/70 px-2 py-0.5 rounded inline-block mb-1">
+                              {c.code}
+                            </div>
+
+                            <div className="text-sm font-medium text-gray-800">
+                              Save {c.discountPercent}%
+                              {c.maxDiscount > 0 && (
+                                <span className="text-xs text-gray-500">
+                                  {" "}
+                                  (up to ₹{c.maxDiscount})
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-gray-500 mt-1">
+                              {c.description ||
+                                `Valid on orders above ₹${c.minOrderValue || 0}`}
+                            </div>
+
+                            <button
+                              onClick={() => applyCoupon(c.code)}
+                              className="mt-3 text-wax text-xs font-medium hover:underline"
+                            >
+                              Apply →
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="text-[11px] text-gray-500 mt-1">
+                        Swipe to see more offers
+                      </div>
+                    </div>
+                  )}
+
+                {/* Applied Coupon */}
+                {couponPreview && (
+                  <div className="mt-3 flex justify-between items-center text-green-700">
+                    <span>
+                      Coupon <strong>{couponPreview.code}</strong>
+                    </span>
+                    <button onClick={removeCoupon}>
+                      <FiX />
+                    </button>
+                  </div>
+                )}
+
+                {/* Feedback */}
+                {couponMessage && (
+                  <div
+                    className={`text-xs mt-2 ${
+                      couponMessage.type === "success"
+                        ? "text-green-700"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {couponMessage.text}
+                  </div>
+                )}
+
+                {couponPreview && (
+                  <div className="flex justify-between text-green-700">
+                    <span>Discount</span>
+                    <span>-{fmt(totals.discount)}</span>
+                  </div>
+                )}
 
                 <div className="border-t my-3" />
 
@@ -296,23 +424,20 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="mt-6 space-y-3">
                 <button
                   onClick={() => navigate("/checkout")}
-                  disabled={cart.items.length === 0}
-                  className={`w-full ${cart.items.length === 0 ? "bg-gray-300 cursor-not-allowed text-gray-700" : "btn-primary"}`}
+                  className="btn-primary w-full"
                 >
                   Proceed to Checkout
                 </button>
 
-                <Link to="/products" className="block text-center text-sm text-gray-700 hover:underline">
+                <Link
+                  to="/products"
+                  className="block text-center text-sm text-gray-700 hover:underline"
+                >
                   Continue shopping
                 </Link>
-              </div>
-
-              <div className="text-xs text-gray-500 mt-4">
-                Estimated delivery & taxes calculated at checkout. Free shipping over ₹500.
               </div>
             </aside>
           </div>

@@ -8,6 +8,7 @@ const {
   updateCoupon,
   deleteCoupon,
   applyCouponToCart,
+  getPublicCoupons
 } = require("../controllers/couponController");
 
 // Admin
@@ -15,6 +16,9 @@ router.post("/", protect, admin, createCoupon);
 router.get("/", protect, admin, getCoupons);
 router.put("/:id", protect, admin, updateCoupon);
 router.delete("/:id", protect, admin, deleteCoupon);
+
+router.get("/public", getPublicCoupons);
+
 
 // User apply coupon
 router.post("/apply", protect, applyCouponToCart);

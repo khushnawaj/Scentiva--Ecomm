@@ -14,6 +14,15 @@ export default function CheckoutPage() {
   const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Read applied coupon (saved from CartPage)
+const appliedCoupon = useMemo(() => {
+  try {
+    return JSON.parse(localStorage.getItem("appliedCoupon"));
+  } catch {
+    return null;
+  }
+}, []);
+
 
   // Incoming product support (?product=ID&qty=N)
   const incomingProductId = searchParams.get("product");
@@ -57,12 +66,22 @@ export default function CheckoutPage() {
 
   const onConfirm = () => {
     if (confirmState.resolve) confirmState.resolve(true);
-    setConfirmState({ open: false, message: "", resolve: null, loading: false });
+    setConfirmState({
+      open: false,
+      message: "",
+      resolve: null,
+      loading: false,
+    });
   };
 
   const onCancel = () => {
     if (confirmState.resolve) confirmState.resolve(false);
-    setConfirmState({ open: false, message: "", resolve: null, loading: false });
+    setConfirmState({
+      open: false,
+      message: "",
+      resolve: null,
+      loading: false,
+    });
   };
 
   // Sync cart → checkoutItems (only if checkoutItems empty)
@@ -145,7 +164,9 @@ export default function CheckoutPage() {
             error: "Failed to add to cart",
           });
           await fetchCart();
-          setCheckoutItems(cart.items && cart.items.length ? [...cart.items] : (prev) => prev);
+          setCheckoutItems(
+            cart.items && cart.items.length ? [...cart.items] : (prev) => prev
+          );
           toast.success("Added to checkout");
           return;
         } catch {
@@ -167,7 +188,10 @@ export default function CheckoutPage() {
           const list = [...(prev || [])];
           const idx = list.findIndex((i) => i.product?._id === prod._id);
           if (idx >= 0) {
-            list[idx] = { ...list[idx], qty: (list[idx].qty || 0) + incomingQty };
+            list[idx] = {
+              ...list[idx],
+              qty: (list[idx].qty || 0) + incomingQty,
+            };
             return list;
           }
           return [
@@ -206,10 +230,11 @@ export default function CheckoutPage() {
 
     const tax = +(itemsPrice * 0.05).toFixed(2);
     const shipping = itemsPrice > 500 || itemsPrice === 0 ? 0 : 50;
-    const total = +(itemsPrice + tax + shipping).toFixed(2);
+    const discount = appliedCoupon?.discount || 0;
+    const total = +(itemsPrice + tax + shipping - discount).toFixed(2);
 
-    return { itemsPrice, tax, shipping, total };
-  }, [checkoutItems]);
+    return { itemsPrice, tax, shipping, discount, total };
+  }, [checkoutItems, appliedCoupon]);
 
   // Place order (Razorpay)
   const placeOrder = async () => {
@@ -233,7 +258,9 @@ export default function CheckoutPage() {
       return;
     }
 
-    const ok = await confirm(`Proceed to pay ${fmt(totals.total)} securely via Razorpay?`);
+    const ok = await confirm(
+      `Proceed to pay ${fmt(totals.total)} securely via Razorpay?`
+    );
     if (!ok) return;
 
     try {
@@ -254,18 +281,23 @@ export default function CheckoutPage() {
 
       // 1) Ask backend to create Razorpay order + our Order
       const createRes = await toast.promise(
-        api.post("/payment/razorpay/create-from-cart", { shippingAddress: address }),
+        api.post("/payment/razorpay/create-from-cart", {
+          shippingAddress: address,
+          couponCode: appliedCoupon?.code || null,
+        }),
         {
           loading: "Preparing payment…",
           success: "Payment initialized",
           error: (err) =>
-            err?.response?.data?.message || "Failed to init payment. Please try again.",
+            err?.response?.data?.message ||
+            "Failed to init payment. Please try again.",
         }
       );
 
       const data = createRes?.data || {};
       if (!data?.success) {
-        const msg = data?.message || "Failed to init payment. Please try again.";
+        const msg =
+          data?.message || "Failed to init payment. Please try again.";
         setError(msg);
         toast.error(msg);
         setLoading(false);
@@ -298,16 +330,22 @@ export default function CheckoutPage() {
 
             if (verifyRes?.data?.success) {
               toast.success("Payment successful!");
+              localStorage.removeItem("appliedCoupon");
+
               await fetchCart();
               // navigate to order success using returned order or data.orderId
-              const orderId = verifyRes.data.order?._id || verifyRes.data.orderId || data.orderId;
+              const orderId =
+                verifyRes.data.order?._id ||
+                verifyRes.data.orderId ||
+                data.orderId;
               if (orderId) {
                 navigate(`/order-success/${orderId}`);
               } else {
                 navigate("/orders");
               }
             } else {
-              const msg = verifyRes?.data?.message || "Payment verification failed.";
+              const msg =
+                verifyRes?.data?.message || "Payment verification failed.";
               setError(msg);
               toast.error(msg);
             }
@@ -346,7 +384,9 @@ export default function CheckoutPage() {
   };
 
   const removeItem = (pid) => {
-    setCheckoutItems((prev) => (prev || []).filter((i) => i.product._id !== pid));
+    setCheckoutItems((prev) =>
+      (prev || []).filter((i) => i.product._id !== pid)
+    );
   };
 
   // When user clicks a saved address card
@@ -402,12 +442,16 @@ export default function CheckoutPage() {
 
               {/* Saved addresses list */}
               {addressesLoading && (
-                <p className="text-sm text-gray-500 mb-3">Loading saved addresses…</p>
+                <p className="text-sm text-gray-500 mb-3">
+                  Loading saved addresses…
+                </p>
               )}
 
               {!addressesLoading && savedAddresses.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-700 mb-2">Choose a saved address:</p>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Choose a saved address:
+                  </p>
                   <div className="space-y-2">
                     {savedAddresses.map((addr, idx) => (
                       <button
@@ -415,13 +459,19 @@ export default function CheckoutPage() {
                         type="button"
                         onClick={() => handleUseAddress(addr, idx)}
                         className={`w-full text-left border rounded-lg p-3 text-sm flex justify-between gap-3 ${
-                          selectedAddressIdx === idx ? "border-flame bg-cream/40" : "border-gray-200 hover:bg-cream/20"
+                          selectedAddressIdx === idx
+                            ? "border-flame bg-cream/40"
+                            : "border-gray-200 hover:bg-cream/20"
                         }`}
                       >
                         <div>
                           <div className="font-medium">
                             {addr.fullName || "No name"}{" "}
-                            {addr.isDefault && <span className="ml-2 text-xs text-green-600">Default</span>}
+                            {addr.isDefault && (
+                              <span className="ml-2 text-xs text-green-600">
+                                Default
+                              </span>
+                            )}
                           </div>
                           <div>{addr.addressLine1}</div>
                           {addr.addressLine2 && <div>{addr.addressLine2}</div>}
@@ -429,9 +479,13 @@ export default function CheckoutPage() {
                             {addr.city}, {addr.state} {addr.postalCode}
                           </div>
                           <div>{addr.country}</div>
-                          {addr.phone && <div className="text-gray-500">📞 {addr.phone}</div>}
+                          {addr.phone && (
+                            <div className="text-gray-500">📞 {addr.phone}</div>
+                          )}
                         </div>
-                        <div className="text-xs text-flame self-start">Use this</div>
+                        <div className="text-xs text-flame self-start">
+                          Use this
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -446,7 +500,9 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">Full Name</span>
                   <input
                     value={address.fullName}
-                    onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, fullName: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="Full name"
                   />
@@ -456,7 +512,9 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">Phone</span>
                   <input
                     value={address.phone}
-                    onChange={(e) => setAddress({ ...address, phone: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, phone: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="Phone (optional)"
                   />
@@ -466,17 +524,23 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">Address line 1</span>
                   <input
                     value={address.addressLine1}
-                    onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, addressLine1: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="House / street"
                   />
                 </label>
 
                 <label className="sm:col-span-2 block">
-                  <span className="text-sm text-textmuted">Address line 2 (optional)</span>
+                  <span className="text-sm text-textmuted">
+                    Address line 2 (optional)
+                  </span>
                   <input
                     value={address.addressLine2}
-                    onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, addressLine2: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="Area, landmark, etc."
                   />
@@ -486,7 +550,9 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">City</span>
                   <input
                     value={address.city}
-                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, city: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="City"
                   />
@@ -496,17 +562,23 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">State</span>
                   <input
                     value={address.state}
-                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, state: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="State"
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-sm text-textmuted">Postal code / PIN</span>
+                  <span className="text-sm text-textmuted">
+                    Postal code / PIN
+                  </span>
                   <input
                     value={address.postalCode}
-                    onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, postalCode: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="PIN"
                   />
@@ -516,7 +588,9 @@ export default function CheckoutPage() {
                   <span className="text-sm text-textmuted">Country</span>
                   <input
                     value={address.country}
-                    onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                    onChange={(e) =>
+                      setAddress({ ...address, country: e.target.value })
+                    }
                     className="mt-1 w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-flame/30"
                     placeholder="Country"
                   />
@@ -527,10 +601,15 @@ export default function CheckoutPage() {
 
               <h3 className="text-xl mb-3 font-medium">Payment</h3>
               <p className="text-sm text-gray-600 mb-2">
-                All payments are processed securely via Razorpay (UPI, Card, NetBanking).
+                All payments are processed securely via Razorpay (UPI, Card,
+                NetBanking).
               </p>
 
-              <button onClick={placeOrder} disabled={loading} className="btn-primary mt-3">
+              <button
+                onClick={placeOrder}
+                disabled={loading}
+                className="btn-primary mt-3"
+              >
                 {loading ? "Processing..." : `Pay Now — ${fmt(totals.total)}`}
               </button>
             </div>
@@ -539,25 +618,30 @@ export default function CheckoutPage() {
             <aside className="bg-white p-6 rounded-2xl shadow-soft">
               <h3 className="text-xl font-medium mb-4">Order Summary</h3>
 
-              {incomingLoading && <div className="text-sm text-gray-500">Loading product…</div>}
+              {incomingLoading && (
+                <div className="text-sm text-gray-500">Loading product…</div>
+              )}
 
               <div className="space-y-4 max-h-80 overflow-auto">
                 {(checkoutItems || []).map((it) => {
                   const p = it.product || {};
-                  {/* const raw =
-                    p.images?.[0]?.url || p.images?.[0]?.filename || p.images?.[0]?.path || null; */}
+                  {
+                    /* const raw =
+                    p.images?.[0]?.url || p.images?.[0]?.filename || p.images?.[0]?.path || null; */
+                  }
 
                   return (
                     <div key={p._id} className="flex items-center gap-3">
-<img
-  src={normalizeMediaUrl(p.images?.[0]) || "/placeholder.png"}
-  alt={p.title}
-  className="w-14 h-14 object-cover rounded"
-  onError={(e) => {
-    e.currentTarget.src = "/placeholder.png";
-  }}
-/>
-
+                      <img
+                        src={
+                          normalizeMediaUrl(p.images?.[0]) || "/placeholder.png"
+                        }
+                        alt={p.title}
+                        className="w-14 h-14 object-cover rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.png";
+                        }}
+                      />
 
                       <div className="flex-1">
                         <div className="font-medium">{p.title}</div>
@@ -569,15 +653,22 @@ export default function CheckoutPage() {
                             value={it.qty}
                             min="1"
                             className="border px-2 py-1 w-16 rounded"
-                            onChange={(e) => updateQty(p._id, Number(e.target.value))}
+                            onChange={(e) =>
+                              updateQty(p._id, Number(e.target.value))
+                            }
                           />
-                          <button className="text-red-500 text-xs" onClick={() => removeItem(p._id)}>
+                          <button
+                            className="text-red-500 text-xs"
+                            onClick={() => removeItem(p._id)}
+                          >
                             Remove
                           </button>
                         </div>
                       </div>
 
-                      <div className="font-semibold">{fmt(it.qty * (it.price ?? p.price ?? 0))}</div>
+                      <div className="font-semibold">
+                        {fmt(it.qty * (it.price ?? p.price ?? 0))}
+                      </div>
                     </div>
                   );
                 })}
@@ -596,8 +687,19 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  <span>{totals.shipping === 0 ? "Free" : fmt(totals.shipping)}</span>
+                  <span>
+                    {totals.shipping === 0 ? "Free" : fmt(totals.shipping)}
+                  </span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-700">
+                    <span>
+                      Coupon{" "}
+                      <span className="font-mono">({appliedCoupon.code})</span>
+                    </span>
+                    <span>-{fmt(appliedCoupon.discount)}</span>
+                  </div>
+                )}
 
                 <div className="flex justify-between font-bold text-lg mt-2">
                   <span>Total</span>
