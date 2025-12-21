@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { CartContext } from "../contexts/CartContext";
 import { useWishlist } from "../contexts/WishlistContext";
+import api from "../api/api";
+
 import {
   FiShoppingCart,
   FiMenu,
@@ -18,7 +20,7 @@ import { normalizeMediaUrl } from "../utils/media";
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
-  const { cart } = useContext(CartContext);
+const { cart, appliedCoupon } = useContext(CartContext);
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
 
@@ -38,6 +40,45 @@ export default function Navbar() {
 
   const cartCount = (cart?.items || []).reduce((sum, it) => sum + (it.qty || 0), 0);
   const wishlistCount = (wishlistItems || []).length;
+  const [promoCoupon, setPromoCoupon] = useState(null);
+
+
+
+useEffect(() => {
+  const loadPromo = async () => {
+    try {
+      const { data } = await api.get("/coupons/public");
+      if (Array.isArray(data) && data.length > 0) {
+        setPromoCoupon(data[0]);
+      } else {
+        setPromoCoupon(null);
+      }
+    } catch {
+      setPromoCoupon(null);
+    }
+  };
+
+  loadPromo();
+}, []);
+useEffect(() => {
+  const onStorage = (e) => {
+    if (e.key === "promo-updated") {
+      setPromoCoupon(null); // force refetch
+      setTimeout(() => {
+        api.get("/coupons/public").then(({ data }) => {
+          setPromoCoupon(data?.[0] || null);
+        });
+      }, 0);
+    }
+  };
+
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}, []);
+
+
+
+
 
   // Debounced search: navigate after typing stops
   useEffect(() => {
@@ -152,12 +193,21 @@ const avatarSrc = user?.avatar
   return (
     <header className="w-full sticky top-0 z-50">
       {/* Top promo stripe */}
-      <div className="w-full bg-gradient-to-r from-wax to-cream text-white text-sm">
-        <div className="w-full px-4 lg:px-8 py-1 text-center font-medium">
-          Free gift wrap on orders over <strong>₹999</strong> — use{" "}
-          <span className="font-bold">GIFT10</span>
-        </div>
-      </div>
+{promoCoupon && promoCoupon.code !== appliedCoupon?.code && (
+  <div className="w-full bg-gradient-to-r from-wax to-cream text-white text-sm">
+    <div className="w-full px-4 lg:px-8 py-1 text-center font-medium">
+      {promoCoupon.description || "Special offer"}{" "}
+      {promoCoupon.minOrderValue > 0 && (
+        <>
+          on orders over <strong>₹{promoCoupon.minOrderValue}</strong>{" "}
+        </>
+      )}
+      — use{" "}
+      <span className="font-bold">{promoCoupon.code}</span>
+    </div>
+  </div>
+)}
+
 
       {/* Main nav */}
       <nav className="w-full bg-white shadow-sm">

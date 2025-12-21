@@ -10,18 +10,13 @@ import ConfirmModal from "../components/ConfirmModal";
 import { toast } from "react-hot-toast";
 
 export default function CheckoutPage() {
-  const { cart, fetchCart } = useContext(CartContext);
+const { cart, fetchCart, appliedCoupon, clearCoupon } =
+  useContext(CartContext);
   const { user, setUser } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Read applied coupon (saved from CartPage)
-const appliedCoupon = useMemo(() => {
-  try {
-    return JSON.parse(localStorage.getItem("appliedCoupon"));
-  } catch {
-    return null;
-  }
-}, []);
+
+
 
 
   // Incoming product support (?product=ID&qty=N)
@@ -330,7 +325,7 @@ const appliedCoupon = useMemo(() => {
 
             if (verifyRes?.data?.success) {
               toast.success("Payment successful!");
-              localStorage.removeItem("appliedCoupon");
+clearCoupon();
 
               await fetchCart();
               // navigate to order success using returned order or data.orderId

@@ -5,7 +5,7 @@ export const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   // --------------------------------
-  // Local cart state (safe hydrate)
+  // CART STATE (safe hydrate)
   // --------------------------------
   const [cart, setCart] = useState(() => {
     try {
@@ -16,16 +16,37 @@ export const CartProvider = ({ children }) => {
   });
 
   // --------------------------------
-  // Sync helper (state + storage)
+  // COUPON STATE (safe hydrate)
+  // --------------------------------
+  const [appliedCoupon, setAppliedCoupon] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("appliedCoupon"));
+    } catch {
+      return null;
+    }
+  });
+
+  // --------------------------------
+  // Sync helper
   // --------------------------------
   const updateCart = (data) => {
     setCart(data);
     try {
       localStorage.setItem("cart", JSON.stringify(data));
       localStorage.setItem("cart-updated", Date.now().toString());
-    } catch {
-      // ignore storage errors
-    }
+    } catch {}
+  };
+
+  const updateCoupon = (coupon) => {
+    setAppliedCoupon(coupon);
+    try {
+      if (coupon) {
+        localStorage.setItem("appliedCoupon", JSON.stringify(coupon));
+      } else {
+        localStorage.removeItem("appliedCoupon");
+      }
+      localStorage.setItem("coupon-updated", Date.now().toString());
+    } catch {}
   };
 
   // --------------------------------
@@ -37,8 +58,6 @@ export const CartProvider = ({ children }) => {
       updateCart(data);
     } catch (err) {
       console.warn("Cart fetch failed", err);
-      // IMPORTANT:
-      // Do NOT wipe local cart on auth/network failure
     }
   };
 
@@ -47,19 +66,29 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, []);
 
-  // Cross-tab cart sync
+  // --------------------------------
+  // Cross-tab sync
+  // --------------------------------
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "cart-updated") {
-        fetchCart();
+      if (e.key === "cart-updated") fetchCart();
+      if (e.key === "coupon-updated") {
+        try {
+          setAppliedCoupon(
+            JSON.parse(localStorage.getItem("appliedCoupon"))
+          );
+        } catch {
+          setAppliedCoupon(null);
+        }
       }
     };
+
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
 
   // --------------------------------
-  // ADD TO CART (logic only)
+  // CART ACTIONS
   // --------------------------------
   const addToCart = async (productId, qty = 1) => {
     try {
@@ -70,39 +99,49 @@ export const CartProvider = ({ children }) => {
       updateCart(data);
       return data;
     } catch (err) {
-      console.error("Add to cart failed", err);
       throw new Error(
-        err?.response?.data?.message || "Unable to add item to cart"
+        err?.response?.data?.message || "Unable to add item"
       );
     }
   };
 
-  // --------------------------------
-  // REMOVE FROM CART (logic only)
-  // --------------------------------
   const removeFromCart = async (productId) => {
     try {
       const { data } = await api.delete(`/cart/${productId}`);
       updateCart(data);
       return data;
     } catch (err) {
-      console.error("Remove from cart failed", err);
       throw new Error(
-        err?.response?.data?.message || "Unable to remove item from cart"
+        err?.response?.data?.message || "Unable to remove item"
       );
     }
   };
 
   // --------------------------------
-  // CONTEXT PROVIDER
+  // COUPON ACTIONS
+  // --------------------------------
+  const applyCoupon = (coupon) => {
+    // expected shape: { code, discount }
+    updateCoupon(coupon);
+  };
+
+  const clearCoupon = () => {
+    updateCoupon(null);
+  };
+
+  // --------------------------------
+  // PROVIDER
   // --------------------------------
   return (
     <CartContext.Provider
       value={{
         cart,
+        appliedCoupon,
         fetchCart,
         addToCart,
         removeFromCart,
+        applyCoupon,
+        clearCoupon,
       }}
     >
       {children}

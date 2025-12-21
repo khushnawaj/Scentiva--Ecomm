@@ -20,8 +20,15 @@ import api from "../api/api";
 import { toast } from "react-hot-toast";
 
 export default function CartPage() {
-  const { cart = { items: [] }, addToCart, removeFromCart } =
-    useContext(CartContext);
+const {
+  cart = { items: [] },
+  addToCart,
+  removeFromCart,
+  applyCoupon: applyCouponToContext,
+  clearCoupon,
+  appliedCoupon,
+} = useContext(CartContext);
+
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
 
@@ -49,6 +56,14 @@ export default function CartPage() {
     };
     loadCoupons();
   }, []);
+
+  useEffect(() => {
+  if (appliedCoupon) {
+    setCouponPreview(appliedCoupon);
+    setCouponCode(appliedCoupon.code);
+  }
+}, [appliedCoupon]);
+
 
   /* ---------------- Confirm Modal ---------------- */
   const [confirmState, setConfirmState] = useState({
@@ -110,6 +125,10 @@ export default function CartPage() {
 
       setCouponPreview(data);
       setCouponCode(data.code);
+      applyCouponToContext({
+  code: data.code,
+  discount: data.discount,
+});
 
       setCouponMessage({
         type: "success",
@@ -128,12 +147,14 @@ export default function CartPage() {
     }
   };
 
-  const removeCoupon = () => {
-    setCouponPreview(null);
-    setCouponCode("");
-    setCouponMessage(null);
-    toast.success("Coupon removed");
-  };
+const removeCoupon = () => {
+  setCouponPreview(null);
+  setCouponCode("");
+  setCouponMessage(null);
+  clearCoupon(); // 
+  //   toast.success("Coupon removed");
+};
+
 
   /* ---------------- Quantity + Remove ---------------- */
   const updateQty = async (pid, qty) => {
