@@ -25,3 +25,11 @@
 
 ### Fixed
 - Image URLs in production
+
+
+### Coupons
+- Admin-managed coupons
+- Auto-applied across Cart and Checkout
+- Dynamic promo banner in Navbar
+- Real-time sync via localStorage events
+
