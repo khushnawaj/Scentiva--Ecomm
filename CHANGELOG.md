@@ -33,3 +33,7 @@
 - Dynamic promo banner in Navbar
 - Real-time sync via localStorage events
 
+
+### Suggestion
+- feauture for Suggesting product according to user search
+
