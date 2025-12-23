@@ -14,9 +14,25 @@ const orderItemSchema = new mongoose.Schema(
     qty: { type: Number, required: true },
     price: { type: Number, required: true },
     image: { type: String },
+
+    // ⭐ REVIEW TRACKING
+    isRated: {
+      type: Boolean,
+      default: false,
+    },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5,
+    },
+    review: {
+      type: String,
+      trim: true,
+    },
   },
   { _id: false }
 );
+
 
 /* -------------------------------------------------------------------------- */
 /*                                   Order                                    */

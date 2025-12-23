@@ -2,13 +2,17 @@ const asyncHandler = require("express-async-handler");
 const Order = require("../models/Order");
 const Cart = require("../models/Cart");
 const Product = require("../models/Product");
+const Coupon = require("../models/Coupon");
+
 const {
   orderStatusUpdateTemplate,
   orderConfirmationTemplate,
 } = require("../utils/orderEmailTemplates");
 const { sendEmail } = require("../utils/mailer");
 
-// POST /api/orders - create order from cart (e.g. COD / dummy)
+
+
+
 // POST /api/orders - create order from cart (COD / dummy)
 const createOrder = asyncHandler(async (req, res) => {
   const { shippingAddress, paymentMethod, couponCode } = req.body;
@@ -195,9 +199,10 @@ const createOrder = asyncHandler(async (req, res) => {
 
 // GET /api/orders/myorders
 const getMyOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ user: req.user._id }).sort({
-    createdAt: -1,
-  });
+const orders = await Order.find({ user: req.user._id })
+  .populate("orderItems.product", "title images")
+  .sort({ createdAt: -1 });
+
   res.json(orders);
 });
 

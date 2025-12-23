@@ -28,6 +28,16 @@ export default function Profile() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState(null);
+  // review modal state
+const [reviewModalOpen, setReviewModalOpen] = useState(false);
+const [reviewTarget, setReviewTarget] = useState(null); 
+// { orderId, productId, productTitle }
+
+const [reviewForm, setReviewForm] = useState({
+  rating: 0,
+  comment: "",
+});
+
 
   // sync local state when user changes
   useEffect(() => {
@@ -124,29 +134,33 @@ const uploadAvatar = async (file) => {
 
 
   // SAVE PROFILE (name, email, addresses) with toast.promise
-  const saveProfile = async () => {
-    setLoading(true);
-    try {
-      const promise = api.put("/auth/profile", { name, email, addresses });
+const saveProfile = async (addrOverride = addresses) => {
+  if (loading) return;
 
-      const res = await toast.promise(promise, {
-        loading: "Saving profile...",
-        success: (res) => "Profile updated successfully!",
-        error: (err) => err?.response?.data?.message || "Update failed",
-      });
+  setLoading(true);
+  try {
+    const { data } = await api.put("/auth/profile", {
+      name,
+      email,
+      addresses: addrOverride,
+    });
 
-      const data = res.data;
-      setUser((prev) => ({ ...(prev || {}), ...data }));
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-      }
-    } catch (err) {
-      // toast shown by promise
-      console.error("Save profile failed", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setUser((prev) => ({
+      ...(prev || {}),
+      ...data,
+      addresses: data.addresses ?? addrOverride,
+    }));
+
+    return true;
+  } catch (err) {
+    console.error("Save profile failed", err);
+    toast.error("Failed to save changes");
+    return false;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // CHANGE PASSWORD with toast.promise
   const changePassword = async () => {
@@ -184,15 +198,26 @@ const uploadAvatar = async (file) => {
     setConfirmInfo(null);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!confirmInfo) return;
     const { action, payload } = confirmInfo;
 
-    if (action === "removeAddress") {
-      const idx = payload?.idx;
-      setAddresses((prev) => prev.filter((_, i) => i !== idx));
-      toast.success("Address removed");
-    } else if (action === "discardChanges") {
+  if (action === "removeAddress") {
+  const idx = payload?.idx;
+  const previous = addresses;
+  const updated = addresses.filter((_, i) => i !== idx);
+
+  setAddresses(updated);
+
+  const ok = await saveProfile(updated);
+  if (ok) {
+    toast.success("Address removed");
+  } else {
+    setAddresses(previous);
+  }
+}
+
+ else if (action === "discardChanges") {
       setName(user?.name || "");
       setEmail(user?.email || "");
       setAvatarPreview(user?.avatar || null);
@@ -206,18 +231,69 @@ const uploadAvatar = async (file) => {
   };
 
   // local address helpers
-  const handleSetDefault = (idx) => {
-    setAddresses((prev) =>
-      prev.map((a, i) =>
-        i === idx ? { ...a, isDefault: true } : { ...a, isDefault: false }
-      )
-    );
+const handleSetDefault = async (idx) => {
+  const previous = addresses;
+  const updated = addresses.map((a, i) =>
+    i === idx ? { ...a, isDefault: true } : { ...a, isDefault: false }
+  );
+
+  setAddresses(updated);
+
+  const ok = await saveProfile(updated);
+  if (ok) {
     toast.success("Default address updated");
-  };
+  } else {
+    setAddresses(previous);
+  }
+};
+
 
   const handleRemoveAddress = (idx) => {
     openConfirm("removeAddress", { idx });
   };
+
+  const submitReview = async () => {
+  if (!reviewTarget || reviewForm.rating === 0) return;
+
+  try {
+    await toast.promise(
+      api.post("/reviews", {
+        orderId: reviewTarget.orderId,
+        productId: reviewTarget.productId,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment,
+      }),
+      {
+        loading: "Submitting review...",
+        success: "Thanks for your review!",
+        error: (err) =>
+          err?.response?.data?.message || "Failed to submit review",
+      }
+    );
+
+    // close modal
+    setReviewModalOpen(false);
+
+    // mark locally as rated (UI only, no refetch yet)
+    setOrders((prev) =>
+      prev.map((o) =>
+        o._id === reviewTarget.orderId
+          ? {
+              ...o,
+              orderItems: o.orderItems.map((it) =>
+                it.product === reviewTarget.productId
+                  ? { ...it, isRated: true }
+                  : it
+              ),
+            }
+          : o
+      )
+    );
+  } catch (err) {
+    console.error("Submit review failed", err);
+  }
+};
+
 
   return (
     <div className="py-10 w-full">
@@ -384,7 +460,11 @@ const uploadAvatar = async (file) => {
                     {addr.isDefault && <div className="text-xs text-green-600 mt-1">Default address</div>}
                   </div>
                   <div className="flex flex-col gap-2 text-xs">
-                    <button className="px-2 py-1 border rounded" onClick={() => handleSetDefault(idx)}>
+<button
+  disabled={loading}
+  className="px-2 py-1 border rounded disabled:opacity-50"
+  onClick={() => handleSetDefault(idx)}
+>
                       {addr.isDefault ? "Default" : "Set default"}
                     </button>
                     <button className="px-2 py-1 text-red-500" onClick={() => handleRemoveAddress(idx)}>
@@ -396,14 +476,28 @@ const uploadAvatar = async (file) => {
             </div>
 
             {/* Add new address */}
-            <AddAddressForm
-              onAdd={(addr) => {
-                setAddresses((prev) => [...prev, addr]);
-                toast.success("Address added");
-              }}
-            />
+            <p className="text-xs text-gray-500 mb-2">
+  Addresses are saved automatically.
+</p>
 
-            <button onClick={saveProfile} disabled={loading} className={`btn-primary mt-4 ${loading ? "opacity-70 pointer-events-none" : ""}`}>
+<AddAddressForm
+  onAdd={async (addr) => {
+    const previous = addresses;
+    const updated = [...addresses, addr];
+
+    setAddresses(updated);
+
+    const ok = await saveProfile(updated);
+    if (ok) {
+      toast.success("Address saved");
+    } else {
+      setAddresses(previous);
+    }
+  }}
+/>
+
+
+            <button onClick={()=>saveProfile} disabled={loading} className={`btn-primary mt-4 ${loading ? "opacity-70 pointer-events-none" : ""}`}>
               {loading ? "Saving..." : "Save addresses"}
             </button>
           </div>
@@ -438,18 +532,54 @@ const uploadAvatar = async (file) => {
 
                     {/* order items preview */}
                     <div className="mt-2 space-y-2">
-                      {order.orderItems?.slice(0, 3).map((item, idx) => {
-                        const imgSrc = item.image ? normalizeMediaUrl(item.image, { typeHint: "image" }) : "/placeholder.png";
-                        return (
-                          <div key={idx} className="flex items-center gap-2 text-xs">
-                            <img src={imgSrc} alt={item.title} className="w-10 h-10 rounded object-cover" />
-                            <div className="flex-1 min-w-0">
-                              <div className="truncate">{item.title}</div>
-                              <div className="text-gray-500">Qty: {item.qty} · ₹{item.price}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
+{order.orderItems?.map((item, idx) => {
+  const imgSrc = item.image
+    ? normalizeMediaUrl(item.image, { typeHint: "image" })
+    : "/placeholder.png";
+
+  const canReview = order.status === "delivered";
+
+  return (
+    <div
+      key={idx}
+      className="flex items-center justify-between gap-3 border rounded-lg p-2"
+    >
+      <div className="flex items-center gap-2 text-xs">
+        <img
+          src={imgSrc}
+          alt={item.title}
+          className="w-10 h-10 rounded object-cover"
+        />
+        <div className="min-w-0">
+          <div className="truncate font-medium">{item.title}</div>
+          <div className="text-gray-500">
+            Qty: {item.qty} · ₹{item.price}
+          </div>
+        </div>
+      </div>
+
+      {/* REVIEW CTA */}
+      {canReview && (
+<button
+  className="text-xs px-3 py-1 border rounded hover:bg-gray-50"
+  onClick={() => {
+    setReviewTarget({
+      orderId: order._id,
+      productId: item.product,
+      productTitle: item.title,
+    });
+    setReviewForm({ rating: 0, comment: "" });
+    setReviewModalOpen(true);
+  }}
+>
+  Rate product
+</button>
+
+      )}
+    </div>
+  );
+})}
+
                       {order.orderItems && order.orderItems.length > 3 && <div className="text-xs text-gray-500">+ {order.orderItems.length - 3} more items</div>}
                     </div>
 
@@ -478,6 +608,65 @@ const uploadAvatar = async (file) => {
         onConfirm={handleConfirm}
         onCancel={closeConfirm}
       />
+
+      {/* REVIEW MODAL */}
+{reviewModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-xl w-full max-w-md p-6">
+      <h3 className="text-lg font-semibold mb-2">
+        Rate {reviewTarget?.productTitle}
+      </h3>
+
+      {/* Rating */}
+      <div className="flex gap-2 mb-4">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            className={`text-xl ${
+              reviewForm.rating >= n ? "text-gold" : "text-gray-300"
+            }`}
+            onClick={() =>
+              setReviewForm((f) => ({ ...f, rating: n }))
+            }
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      {/* Comment */}
+      <textarea
+        className="w-full border rounded p-2 text-sm mb-4"
+        rows={4}
+        placeholder="Write your review (optional)"
+        value={reviewForm.comment}
+        onChange={(e) =>
+          setReviewForm((f) => ({ ...f, comment: e.target.value }))
+        }
+      />
+
+      {/* Actions */}
+      <div className="flex justify-end gap-2">
+        <button
+          className="px-4 py-2 text-sm border rounded"
+          onClick={() => setReviewModalOpen(false)}
+        >
+          Cancel
+        </button>
+
+<button
+  className="px-4 py-2 text-sm rounded bg-flame text-white disabled:opacity-50"
+  disabled={reviewForm.rating === 0}
+  onClick={submitReview}
+>
+  Submit
+</button>
+
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

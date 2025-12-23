@@ -7,6 +7,8 @@ import { CartContext } from "../contexts/CartContext";
 import { useWishlist } from "../contexts/WishlistContext";
 import { toast } from "react-hot-toast";
 import ConfirmModal from "../components/ConfirmModal";
+import { FiStar } from "react-icons/fi";
+
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -82,6 +84,10 @@ export default function ProductPage() {
       return `₹${p}`;
     }
   };
+
+  const averageRating = Number(product?.averageRating || 0);
+const ratingsCount = Number(product?.ratingsCount || 0);
+
 
 
 
@@ -279,12 +285,31 @@ export default function ProductPage() {
 
         {/* Right: Details */}
         <div>
-          <h1 className="text-2xl font-semibold text-wax mb-1">
-            {product.title}
-          </h1>
-          {product.brand && (
-            <div className="text-sm text-textmuted mb-3">{product.brand}</div>
-          )}
+<h1 className="text-2xl font-semibold text-wax mb-1">
+  {product.title}
+</h1>
+
+{product.brand && (
+  <div className="text-sm text-textmuted">{product.brand}</div>
+)}
+
+{/* Rating summary */}
+<div className="flex items-center gap-2 mt-2 mb-3">
+  <FiStar className="text-gold fill-gold" size={18} />
+  {ratingsCount > 0 ? (
+    <>
+      <span className="text-sm font-medium text-gray-700">
+        {averageRating.toFixed(1)}
+      </span>
+      <span className="text-xs text-gray-500">
+        ({ratingsCount} reviews)
+      </span>
+    </>
+  ) : (
+    <span className="text-xs text-gray-400">No reviews yet</span>
+  )}
+</div>
+
           <div className="text-2xl font-bold mb-4">
             {formatPrice(product.price)}
           </div>
@@ -368,6 +393,29 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+
+      {/* Reviews Section */}
+<div className="mt-10 border-t pt-6">
+  <h2 className="text-lg font-semibold mb-3">Customer Reviews</h2>
+
+  {ratingsCount === 0 ? (
+    <p className="text-sm text-gray-500">
+      No reviews yet. Be the first to review this product after delivery.
+    </p>
+  ) : (
+<ReviewList productId={productId} />
+
+  )}
+
+  {/* Disabled review CTA (future unlock) */}
+  <button
+    disabled
+    className="mt-4 px-4 py-2 rounded border text-sm text-gray-400 cursor-not-allowed"
+  >
+    Write a review (available after delivery)
+  </button>
+</div>
+
 
       {/* Confirm modal for Buy Now */}
       <ConfirmModal

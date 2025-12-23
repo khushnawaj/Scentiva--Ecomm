@@ -11,17 +11,30 @@ const imageSchema = new mongoose.Schema(
 const productSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, index: "text" },
-    description: { type: String },
+    description: String,
+
     price: { type: Number, required: true },
     discountPrice: { type: Number, default: 0 },
+
     category: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
-    brand: { type: String },
+    brand: String,
+
     stock: { type: Number, default: 0 },
     sku: { type: String, trim: true, unique: true, sparse: true },
+
     images: [imageSchema],
-    rating: { type: Number, default: 0 },
-    numReviews: { type: Number, default: 0 },
-    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: "Review" }],
+
+    // ⭐ RATING AGGREGATION (SOURCE OF TRUTH)
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+
+    ratingsCount: {
+      type: Number,
+      default: 0,
+    },
+
     isFeatured: { type: Boolean, default: false },
   },
   { timestamps: true }

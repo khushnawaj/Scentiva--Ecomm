@@ -1,3 +1,4 @@
+// src/components/ProductCard.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiHeart, FiStar } from "react-icons/fi";
@@ -5,11 +6,7 @@ import { normalizeMediaUrl } from "../utils/media";
 import { useWishlist } from "../contexts/WishlistContext";
 import toast from "react-hot-toast";
 
-export default function ProductCard({
-  product,
-  // inWishlist: _initialInWishlist = false,
-  onWishlistChange: _onWishlistChange,
-}) {
+export default function ProductCard({ product, onWishlistChange }) {
   const navigate = useNavigate();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
@@ -17,31 +14,23 @@ export default function ProductCard({
   const wish = productId ? isInWishlist(productId) : false;
 
   const imgObj = product?.images?.[0] || {};
-  // const rawUrl = imgObj.url || imgObj.filename || imgObj.path || null;
-  const img =
-    normalizeMediaUrl(imgObj) ||
-    "https://via.placeholder.com/400x400.png?text=No+Image";
+const FALLBACK_IMAGE = "/placeholder.png";
+
+const img = normalizeMediaUrl(imgObj) || FALLBACK_IMAGE;
+
+
+  const averageRating = Number(product?.averageRating || 0);
+  const ratingsCount = Number(product?.ratingsCount || 0);
 
   const handleToggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (!productId) {
-      toast.error("Invalid product.");
+      toast.error("Invalid product");
       return;
     }
 
-    // parent handler (Wishlist Page)
-    if (typeof _onWishlistChange === "function") {
-      try {
-        _onWishlistChange(productId, !wish);
-      } catch (err) {
-        console.error(err);
-      }
-      return;
-    }
-
-    // Toast-powered wishlist toggle
     try {
       await toast.promise(toggleWishlist(product), {
         loading: wish ? "Removing..." : "Adding...",
@@ -50,7 +39,7 @@ export default function ProductCard({
       });
     } catch (err) {
       if (err?.response?.status === 401) {
-        toast.error("Please log in first");
+        toast.error("Please login first");
         navigate("/login");
       }
     }
@@ -58,52 +47,38 @@ export default function ProductCard({
 
   return (
     <div className="group rounded-2xl bg-white shadow-soft hover:shadow-lift transition-all duration-300 overflow-hidden border border-cream/40 relative">
-
-      {/* ❤️ Circular Wishlist Button (fixed shape) */}
+      {/* Wishlist */}
       <button
         type="button"
-        aria-label={wish ? "Remove from wishlist" : "Add to wishlist"}
         onClick={handleToggleWishlist}
-        className="
-          absolute right-4 top-4 z-20
-          w-10 h-10 flex items-center justify-center
-          rounded-full bg-white/90 backdrop-blur-sm shadow
-          hover:bg-cream/40 transition
-        "
+        className="absolute right-4 top-4 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 shadow"
       >
         <FiHeart
           size={20}
-          className={`transition-all duration-300 ${
-            wish ? "text-flame fill-flame" : "text-gray-600"
-          }`}
+          className={wish ? "text-flame fill-flame" : "text-gray-600"}
         />
       </button>
 
-      {/* PRODUCT DISPLAY */}
       <Link to={productId ? `/product/${productId}` : "#"}>
+        {/* Image */}
         <div className="relative h-60 overflow-hidden">
           <img
             src={img}
-            alt={product?.title || "Product image"}
+            alt={product?.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src =
-                "https://via.placeholder.com/400x400.png?text=No+Image";
-            }}
-          />
+onError={(e) => {
+  e.currentTarget.onerror = null; // prevent loop
+  e.currentTarget.src = FALLBACK_IMAGE;
+}}
 
-          {product?.badge && (
-            <span className="absolute left-3 top-3 bg-flame text-white text-xs px-3 py-1 rounded-full shadow">
-              {product.badge}
-            </span>
-          )}
+          />
         </div>
 
-        {/* PRODUCT DETAILS */}
+        {/* Content */}
         <div className="p-4">
           <h3 className="font-semibold text-wax text-lg truncate">
-            {product?.title || "Untitled product"}
+            {product?.title}
           </h3>
 
           {product?.description && (
@@ -113,15 +88,21 @@ export default function ProductCard({
           )}
 
           <div className="mt-4 flex items-center justify-between">
+            {/* Price */}
             <div className="text-flame font-bold text-xl">
-              ₹{product?.price ?? "--"}
+              ₹{product?.price}
             </div>
 
-            <div className="flex items-center text-gold gap-1">
-              <FiStar className="fill-gold text-gold" size={16} />
-              <span className="text-sm text-textmuted">
-                {product?.rating?.toFixed?.(1) ?? "0.0"}
-              </span>
+            {/* Rating */}
+            <div className="flex items-center gap-1">
+              <FiStar className="text-gold fill-gold" size={16} />
+              {ratingsCount > 0 ? (
+                <span className="text-sm text-gray-600">
+                  {averageRating.toFixed(1)} ({ratingsCount})
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">No ratings</span>
+              )}
             </div>
           </div>
         </div>

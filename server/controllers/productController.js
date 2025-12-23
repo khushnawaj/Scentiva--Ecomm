@@ -76,12 +76,18 @@ const getProducts = asyncHandler(async (req, res) => {
   let { page = 1, limit = 12, keyword = "", category, minPrice, maxPrice, sort } =
     req.query;
 
-  page = Number(page) || 1;
-  limit = Number(limit) || 12;
+page = Math.max(1, parseInt(page, 10) || 1);
+limit = Math.min(100, Math.max(1, parseInt(limit, 10) || 12));
+
 
   const query = {};
 
-  if (keyword) query.$text = { $search: keyword };
+if (keyword) {
+  query.$or = [
+    { title: { $regex: keyword, $options: "i" } },
+    { description: { $regex: keyword, $options: "i" } },
+  ];
+}
   if (category) query.category = category;
 
   if (minPrice || maxPrice) {
@@ -98,14 +104,19 @@ const getProducts = asyncHandler(async (req, res) => {
   else if (sort === "rating") cursor = cursor.sort({ rating: -1 });
 
   const total = await Product.countDocuments(query);
-  const products = await cursor
-    .skip((page - 1) * limit)
-    .limit(limit);
+  const totalPages = Math.ceil(total / limit) || 1;
+const skip = (page - 1) * limit;
+
+const products = await cursor
+  .skip(skip >= total ? 0 : skip)
+  .limit(limit);
+
 
   res.json({
     products,
     page,
-    pages: Math.ceil(total / limit) || 1,
+    pages: totalPages,
+    totalPages: totalPages,
     total,
   });
 });
@@ -125,11 +136,7 @@ const getProductById = asyncHandler(async (req, res) => {
   }
 
   const product = await Product.findById(id)
-    .populate("category", "name slug")
-    .populate({
-      path: "reviews",
-      populate: { path: "user", select: "name" },
-    });
+    .populate("category", "name slug");
 
   if (!product) {
     res.status(404);
@@ -138,6 +145,7 @@ const getProductById = asyncHandler(async (req, res) => {
 
   res.json(product);
 });
+
 
 /* -------------------------------------------------------------------------- */
 /*                               UPDATE PRODUCT                               */
@@ -266,10 +274,17 @@ const deleteProduct = asyncHandler(async (req, res) => {
  */
 const addReview = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user._id;
+  const { rating, comment } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     res.status(400);
     throw new Error("Invalid product id");
+  }
+
+  if (!rating) {
+    res.status(400);
+    throw new Error("Rating is required");
   }
 
   const product = await Product.findById(id);
@@ -278,49 +293,39 @@ const addReview = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  const userId = req.user?._id;
-  if (!userId) {
-    res.status(401);
-    throw new Error("Authentication required");
-  }
-
-  const { rating, comment } = req.body;
-  if (!rating) {
-    res.status(400);
-    throw new Error("Rating is required");
-  }
-
+  // prevent duplicate review
   const existing = await Review.findOne({
     user: userId,
-    product: product._id,
+    product: id,
   });
 
   if (existing) {
     res.status(400);
-    throw new Error("Product already reviewed by this user");
+    throw new Error("Product already reviewed");
   }
 
-  const review = new Review({
+  // create review
+  await Review.create({
     user: userId,
-    product: product._id,
+    product: id,
     rating: Number(rating),
     comment: comment || "",
   });
 
-  await review.save();
+  // ⭐ update aggregation
+  const newCount = product.ratingsCount + 1;
+  const newAverage =
+    (product.averageRating * product.ratingsCount + Number(rating)) /
+    newCount;
 
-  product.reviews.push(review._id);
-
-  const reviews = await Review.find({ product: product._id });
-  product.numReviews = reviews.length;
-  product.rating =
-    reviews.reduce((acc, r) => acc + (r.rating || 0), 0) /
-      reviews.length || 0;
+  product.ratingsCount = newCount;
+  product.averageRating = Number(newAverage.toFixed(1));
 
   await product.save();
 
-  res.status(201).json({ message: "Review added" });
+  res.status(201).json({ message: "Review added successfully" });
 });
+
 
 /* -------------------------------------------------------------------------- */
 /*                                   EXPORTS                                  */
