@@ -8,6 +8,7 @@ import { useWishlist } from "../contexts/WishlistContext";
 import { toast } from "react-hot-toast";
 import ConfirmModal from "../components/ConfirmModal";
 import { FiStar } from "react-icons/fi";
+import ReviewList from "./ReviewList";
 
 
 export default function ProductPage() {

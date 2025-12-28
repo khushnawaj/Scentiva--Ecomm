@@ -281,7 +281,7 @@ const handleSetDefault = async (idx) => {
           ? {
               ...o,
               orderItems: o.orderItems.map((it) =>
-                it.product === reviewTarget.productId
+(it.product?._id || it.product) === reviewTarget.productId
                   ? { ...it, isRated: true }
                   : it
               ),
@@ -537,7 +537,8 @@ const handleSetDefault = async (idx) => {
     ? normalizeMediaUrl(item.image, { typeHint: "image" })
     : "/placeholder.png";
 
-  const canReview = order.status === "delivered";
+const canReview =
+  order.status === "delivered" && !item.isRated;
 
   return (
     <div
@@ -565,7 +566,8 @@ const handleSetDefault = async (idx) => {
   onClick={() => {
     setReviewTarget({
       orderId: order._id,
-      productId: item.product,
+      productId: item.product?._id || item.product,
+
       productTitle: item.title,
     });
     setReviewForm({ rating: 0, comment: "" });

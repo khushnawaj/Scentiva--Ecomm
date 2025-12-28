@@ -8,37 +8,92 @@ export default function ReviewList({ productId }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!productId) return;
+    if (!productId) {
+      setReviews([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
 
     api
       .get(`/reviews/product/${productId}`)
-      .then((res) => setReviews(res.data || []))
-      .catch(() => setReviews([]))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+
+        // newest first (extra safety)
+        list.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        setReviews(list);
+      })
+      .catch(() => {
+        setReviews([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [productId]);
 
+  /* ---------------------------- UI STATES ---------------------------- */
+
   if (loading) {
-    return <p className="text-sm text-gray-400">Loading reviews...</p>;
+    return (
+      <p className="text-sm text-gray-400">
+        Loading reviews...
+      </p>
+    );
   }
 
-  if (reviews.length === 0) {
-    return <p className="text-sm text-gray-400">No reviews yet.</p>;
+  if (!reviews.length) {
+    return (
+      <p className="text-sm text-gray-400">
+        No reviews yet.
+      </p>
+    );
   }
+
+  /* ---------------------------- RENDER ------------------------------- */
 
   return (
     <div className="space-y-4">
       {reviews.map((r) => (
-        <div key={r._id} className="border rounded p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <FiStar className="text-gold fill-gold" size={14} />
-            <span className="text-sm font-medium">{r.rating}</span>
-            <span className="text-xs text-gray-500">
+        <div
+          key={r._id}
+          className="border rounded-lg p-3 text-sm"
+        >
+          {/* Rating + user */}
+          <div className="flex items-center gap-1 mb-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <FiStar
+                key={n}
+                size={14}
+                className={
+                  n <= r.rating
+                    ? "text-gold fill-gold"
+                    : "text-gray-300"
+                }
+              />
+            ))}
+
+            <span className="ml-2 text-xs text-gray-500">
               by {r.user?.name || "User"}
             </span>
           </div>
+
+          {/* Comment */}
           {r.comment && (
-            <p className="text-sm text-gray-600">{r.comment}</p>
+            <p className="text-gray-600 leading-relaxed">
+              {r.comment}
+            </p>
           )}
+
+          {/* Date */}
+          <div className="mt-1 text-xs text-gray-400">
+            {r.createdAt &&
+              new Date(r.createdAt).toLocaleDateString()}
+          </div>
         </div>
       ))}
     </div>

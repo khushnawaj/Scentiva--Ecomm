@@ -16,56 +16,58 @@ const createReview = asyncHandler(async (req, res) => {
 
   /* ---------------------------- BASIC VALIDATION --------------------------- */
   if (!userId) {
-    res.status(401);
-    throw new Error("Authentication required");
+    return res.status(401).json({ message: "Authentication required" });
   }
 
   if (!orderId || !productId || rating === undefined) {
-    res.status(400);
-    throw new Error("orderId, productId and rating are required");
+    return res
+      .status(400)
+      .json({ message: "orderId, productId and rating are required" });
   }
 
   if (
     !mongoose.Types.ObjectId.isValid(orderId) ||
     !mongoose.Types.ObjectId.isValid(productId)
   ) {
-    res.status(400);
-    throw new Error("Invalid orderId or productId");
+    return res.status(400).json({ message: "Invalid orderId or productId" });
   }
 
   const numericRating = Number(rating);
   if (numericRating < 1 || numericRating > 5) {
-    res.status(400);
-    throw new Error("Rating must be between 1 and 5");
+    return res
+      .status(400)
+      .json({ message: "Rating must be between 1 and 5" });
   }
 
   /* ------------------------------ FETCH ORDER ------------------------------ */
   const order = await Order.findById(orderId);
   if (!order) {
-    res.status(404);
-    throw new Error("Order not found");
+    return res.status(404).json({ message: "Order not found" });
   }
 
   /* ------------------------------ OWNERSHIP -------------------------------- */
   if (order.user.toString() !== userId.toString()) {
-    res.status(403);
-    throw new Error("Not authorized to review this order");
+    return res
+      .status(403)
+      .json({ message: "Not authorized to review this order" });
   }
 
   /* --------------------------- DELIVERY CHECK ------------------------------ */
   if (order.status !== "delivered") {
-    res.status(400);
-    throw new Error("You can review only after delivery");
+    return res
+      .status(400)
+      .json({ message: "You can review only after delivery" });
   }
 
   /* ------------------------ PRODUCT IN ORDER -------------------------------- */
   const item = order.orderItems.find(
-    (i) => i.product.toString() === productId
+    (i) => i.product.toString() === productId.toString()
   );
 
   if (!item) {
-    res.status(400);
-    throw new Error("Product not found in this order");
+    return res
+      .status(400)
+      .json({ message: "Product not found in this order" });
   }
 
   /* ------------------------- DUPLICATE PREVENTION -------------------------- */
@@ -76,8 +78,9 @@ const createReview = asyncHandler(async (req, res) => {
   });
 
   if (alreadyReviewed) {
-    res.status(400);
-    throw new Error("Product already reviewed");
+    return res
+      .status(400)
+      .json({ message: "Product already reviewed" });
   }
 
   /* ------------------------------ CREATE REVIEW ---------------------------- */
@@ -89,14 +92,27 @@ const createReview = asyncHandler(async (req, res) => {
     comment: comment?.trim() || "",
   });
 
+  /* ---------------------- UPDATE ORDER ITEM (IMPORTANT) -------------------- */
+  await Order.updateOne(
+    { _id: orderId, "orderItems.product": productId },
+    {
+      $set: {
+        "orderItems.$.isRated": true,
+        "orderItems.$.rating": numericRating,
+        "orderItems.$.review": comment?.trim() || "",
+      },
+    }
+  );
+
   /* ------------------------- UPDATE PRODUCT STATS -------------------------- */
   const product = await Product.findById(productId);
   if (product) {
-    const newCount = product.ratingsCount + 1;
+    const ratingsCount = product.ratingsCount || 0;
+    const averageRating = product.averageRating || 0;
 
+    const newCount = ratingsCount + 1;
     const newAverage =
-      (product.averageRating * product.ratingsCount + numericRating) /
-      newCount;
+      (averageRating * ratingsCount + numericRating) / newCount;
 
     product.ratingsCount = newCount;
     product.averageRating = Number(newAverage.toFixed(1));
@@ -106,6 +122,7 @@ const createReview = asyncHandler(async (req, res) => {
 
   res.status(201).json({ message: "Review submitted successfully" });
 });
+
 
 /* -------------------------------------------------------------------------- */
 /*                          GET PRODUCT REVIEWS                                */
