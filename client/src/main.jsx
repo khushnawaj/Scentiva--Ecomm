@@ -7,6 +7,7 @@ import "./styles.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 import { WishlistProvider } from "./contexts/WishlistContext";
+import { Analytics } from "@vercel/analytics/react"
 
 const router = createAppRouter();
 
@@ -19,5 +20,6 @@ createRoot(document.getElementById("root")).render(
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>
+    <Analytics />
   </React.StrictMode>
 );
