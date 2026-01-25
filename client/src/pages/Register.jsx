@@ -2,7 +2,7 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiUser, FiGithub, FiMail } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiUser } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
 /**
@@ -79,14 +79,7 @@ export default function Register() {
   const strengthColorClass =
     passwordStrength.score >= 3 ? "bg-green-500" : passwordStrength.score >= 2 ? "bg-yellow-400" : "bg-red-400";
 
-  // handlers for social/signup placeholders - replaced alert() with toast
-  const handleGithubSignup = () => {
-    toast("GitHub signup placeholder", { icon: "🔗" });
-  };
-
-  const handleEmailMagic = () => {
-    toast("Email magic link placeholder", { icon: "✉️" });
-  };
+  // handlers (removed)
 
   return (
     <div className="min-h-[calc(100vh-120px)] flex items-center justify-center py-12 px-4">
@@ -183,38 +176,16 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded text-white ${
-                loading ? "bg-gray-400" : "btn-primary"
-              }`}
+              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded text-white ${loading ? "bg-gray-400" : "btn-primary"
+                }`}
               aria-busy={loading}
             >
               {loading ? "Creating account..." : "Create account"}
             </button>
           </form>
 
-          <div className="my-4 flex items-center gap-3">
-            <hr className="flex-1 border-gray-200" />
-            <div className="text-xs text-gray-400">or sign up with</div>
-            <hr className="flex-1 border-gray-200" />
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={handleGithubSignup}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border rounded hover:bg-gray-50"
-              aria-label="Sign up with GitHub"
-            >
-              <FiGithub /> GitHub
-            </button>
-
-            <button
-              onClick={handleEmailMagic}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border rounded hover:bg-gray-50"
-              aria-label="Sign up with Email"
-            >
-              <FiMail /> Email
-            </button>
-          </div>
+          {/* Social signup removed */}
+          <div className="mt-4" />
 
           <p className="text-sm text-center text-textmuted mt-4">
             Already have an account?{" "}

@@ -78,8 +78,8 @@ export default function Home() {
     };
   }, []);
 
-const normalizeRaw = (media) =>
-  normalizeMediaUrl(media) || normalizeMediaUrl(getPlaceholder("image"));
+  const normalizeRaw = (media) =>
+    normalizeMediaUrl(media) || normalizeMediaUrl(getPlaceholder("image"));
 
 
   const slides = useMemo(() => {
@@ -89,14 +89,14 @@ const normalizeRaw = (media) =>
         // const first = p.images?.[0];
         // const rawImage =
         //   (first && (first.url || first.filename || first.path)) || first || null;
-return {
-  id: p._id || p.id,
-  title: p.title,
-  subtitle: p.brand || "",
-  image: normalizeRaw(p.images?.[0]),
-  ctaText: "Shop now",
-  ctaLink: `/product/${p._id || p.id}`,
-};
+        return {
+          id: p._id || p.id,
+          title: p.title,
+          subtitle: p.brand || "",
+          image: normalizeRaw(p.images?.[0]),
+          ctaText: "Shop now",
+          ctaLink: `/product/${p._id || p.id}`,
+        };
 
       });
     }
@@ -134,10 +134,10 @@ return {
     <div className="space-y-12">
       {/* HERO - full-bleed using Carousel component */}
       <section className="w-full">
-        <div className="relative h-[480px] overflow-hidden">
+        <div className="relative h-[320px] sm:h-[480px] overflow-hidden">
           {/* Carousel */}
           <div className="absolute inset-0 z-10">
-            <Carousel slides={slides} autoplay={4500} debug={false} heightClass="h-[480px]" />
+            <Carousel slides={slides} autoplay={4500} debug={false} heightClass="h-[320px] sm:h-[480px]" />
           </div>
 
           {/* Warm overlay + gradient */}
@@ -174,13 +174,13 @@ return {
               {(cats && cats.length
                 ? cats
                 : [
-                    { _id: "c1", name: "Candles" },
-                    { _id: "c2", name: "Gift Sets" },
-                    { _id: "c3", name: "Perfumes" },
-                    { _id: "c4", name: "Home Fragrance" },
-                    { _id: "c5", name: "Bath & Body" },
-                    { _id: "c6", name: "Accessories" },
-                  ]
+                  { _id: "c1", name: "Candles" },
+                  { _id: "c2", name: "Gift Sets" },
+                  { _id: "c3", name: "Perfumes" },
+                  { _id: "c4", name: "Home Fragrance" },
+                  { _id: "c5", name: "Bath & Body" },
+                  { _id: "c6", name: "Accessories" },
+                ]
               ).map((cat) => (
                 <Link
                   key={cat._id || cat.name}

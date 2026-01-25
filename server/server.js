@@ -5,7 +5,7 @@ const path = require('path');
 const connectDB = require('./config/db');
 const errorHandler = require('./middlewares/errorMiddleware');
 const paymentRoutes = require("./routes/paymentRoutes");
-const testRoutes = require("./routes/testRoutes");
+// const testRoutes = require("./routes/testRoutes");
 const newsletterRoutes = require("./routes/newsletterRoutes");
 const wishlistRoutes = require("./routes/wishlistRouter");
 const couponRoutes = require("./routes/couponRoutes");
@@ -35,7 +35,7 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 app.use("/api/payment", paymentRoutes);
 //nodemailer
-app.use("/api", testRoutes);
+// app.use("/api", testRoutes);
 //newsLetter
 app.use("/api/newsletter", newsletterRoutes);
 //wishlist

@@ -87,7 +87,7 @@ export default function ProductPage() {
   };
 
   const averageRating = Number(product?.averageRating || 0);
-const ratingsCount = Number(product?.ratingsCount || 0);
+  const ratingsCount = Number(product?.ratingsCount || 0);
 
 
 
@@ -245,7 +245,7 @@ const ratingsCount = Number(product?.ratingsCount || 0);
             <img
               src={mainSrc}
               alt={product.title}
-              className="w-full h-[520px] object-cover"
+              className="w-full h-96 md:h-[520px] object-cover"
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = normalizeMediaUrl(
@@ -264,9 +264,8 @@ const ratingsCount = Number(product?.ratingsCount || 0);
                   <button
                     key={i}
                     onClick={() => setMainImage(img)}
-                    className={`w-20 h-20 rounded-md overflow-hidden border ${
-                      selected ? "ring-2 ring-flame" : ""
-                    }`}
+                    className={`w-20 h-20 rounded-md overflow-hidden border ${selected ? "ring-2 ring-flame" : ""
+                      }`}
                     aria-label={`View image ${i + 1}`}
                   >
                     <img
@@ -286,30 +285,30 @@ const ratingsCount = Number(product?.ratingsCount || 0);
 
         {/* Right: Details */}
         <div>
-<h1 className="text-2xl font-semibold text-wax mb-1">
-  {product.title}
-</h1>
+          <h1 className="text-2xl font-semibold text-wax mb-1">
+            {product.title}
+          </h1>
 
-{product.brand && (
-  <div className="text-sm text-textmuted">{product.brand}</div>
-)}
+          {product.brand && (
+            <div className="text-sm text-textmuted">{product.brand}</div>
+          )}
 
-{/* Rating summary */}
-<div className="flex items-center gap-2 mt-2 mb-3">
-  <FiStar className="text-gold fill-gold" size={18} />
-  {ratingsCount > 0 ? (
-    <>
-      <span className="text-sm font-medium text-gray-700">
-        {averageRating.toFixed(1)}
-      </span>
-      <span className="text-xs text-gray-500">
-        ({ratingsCount} reviews)
-      </span>
-    </>
-  ) : (
-    <span className="text-xs text-gray-400">No reviews yet</span>
-  )}
-</div>
+          {/* Rating summary */}
+          <div className="flex items-center gap-2 mt-2 mb-3">
+            <FiStar className="text-gold fill-gold" size={18} />
+            {ratingsCount > 0 ? (
+              <>
+                <span className="text-sm font-medium text-gray-700">
+                  {averageRating.toFixed(1)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({ratingsCount} reviews)
+                </span>
+              </>
+            ) : (
+              <span className="text-xs text-gray-400">No reviews yet</span>
+            )}
+          </div>
 
           <div className="text-2xl font-bold mb-4">
             {formatPrice(product.price)}
@@ -353,16 +352,14 @@ const ratingsCount = Number(product?.ratingsCount || 0);
             {/* Animated heart wishlist button */}
             <button
               onClick={handleToggleWishlist}
-              className={`btn-ghost flex items-center gap-2 ${
-                inWishlist ? "text-flame" : "text-gray-700"
-              }`}
+              className={`btn-ghost flex items-center gap-2 ${inWishlist ? "text-flame" : "text-gray-700"
+                }`}
               disabled={busy}
               aria-pressed={inWishlist}
             >
               <span
-                className={`inline-block transform transition-transform duration-200 ${
-                  heartAnimating ? "scale-125" : ""
-                } ${inWishlist ? "fill-current" : ""}`}
+                className={`inline-block transform transition-transform duration-200 ${heartAnimating ? "scale-125" : ""
+                  } ${inWishlist ? "fill-current" : ""}`}
                 aria-hidden
               >
                 {/* Simple heart SVG for crisp animation */}
@@ -396,26 +393,26 @@ const ratingsCount = Number(product?.ratingsCount || 0);
       </div>
 
       {/* Reviews Section */}
-<div className="mt-10 border-t pt-6">
-  <h2 className="text-lg font-semibold mb-3">Customer Reviews</h2>
+      <div className="mt-10 border-t pt-6">
+        <h2 className="text-lg font-semibold mb-3">Customer Reviews</h2>
 
-  {ratingsCount === 0 ? (
-    <p className="text-sm text-gray-500">
-      No reviews yet. Be the first to review this product after delivery.
-    </p>
-  ) : (
-<ReviewList productId={productId} />
+        {ratingsCount === 0 ? (
+          <p className="text-sm text-gray-500">
+            No reviews yet. Be the first to review this product after delivery.
+          </p>
+        ) : (
+          <ReviewList productId={productId} />
 
-  )}
+        )}
 
-  {/* Disabled review CTA (future unlock) */}
-  <button
-    disabled
-    className="mt-4 px-4 py-2 rounded border text-sm text-gray-400 cursor-not-allowed"
-  >
-    Write a review (available after delivery)
-  </button>
-</div>
+        {/* Disabled review CTA (future unlock) */}
+        <button
+          disabled
+          className="mt-4 px-4 py-2 rounded border text-sm text-gray-400 cursor-not-allowed"
+        >
+          Write a review (available after delivery)
+        </button>
+      </div>
 
 
       {/* Confirm modal for Buy Now */}

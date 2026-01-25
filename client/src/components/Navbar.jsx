@@ -20,7 +20,7 @@ import { normalizeMediaUrl } from "../utils/media";
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
-const { cart, appliedCoupon } = useContext(CartContext);
+  const { cart, appliedCoupon } = useContext(CartContext);
   const { wishlistItems } = useWishlist();
   const navigate = useNavigate();
 
@@ -44,37 +44,37 @@ const { cart, appliedCoupon } = useContext(CartContext);
 
 
 
-useEffect(() => {
-  const loadPromo = async () => {
-    try {
-      const { data } = await api.get("/coupons/public");
-      if (Array.isArray(data) && data.length > 0) {
-        setPromoCoupon(data[0]);
-      } else {
+  useEffect(() => {
+    const loadPromo = async () => {
+      try {
+        const { data } = await api.get("/coupons/public");
+        if (Array.isArray(data) && data.length > 0) {
+          setPromoCoupon(data[0]);
+        } else {
+          setPromoCoupon(null);
+        }
+      } catch {
         setPromoCoupon(null);
       }
-    } catch {
-      setPromoCoupon(null);
-    }
-  };
+    };
 
-  loadPromo();
-}, []);
-useEffect(() => {
-  const onStorage = (e) => {
-    if (e.key === "promo-updated") {
-      setPromoCoupon(null); // force refetch
-      setTimeout(() => {
-        api.get("/coupons/public").then(({ data }) => {
-          setPromoCoupon(data?.[0] || null);
-        });
-      }, 0);
-    }
-  };
+    loadPromo();
+  }, []);
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "promo-updated") {
+        setPromoCoupon(null); // force refetch
+        setTimeout(() => {
+          api.get("/coupons/public").then(({ data }) => {
+            setPromoCoupon(data?.[0] || null);
+          });
+        }, 0);
+      }
+    };
 
-  window.addEventListener("storage", onStorage);
-  return () => window.removeEventListener("storage", onStorage);
-}, []);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
 
 
@@ -150,20 +150,20 @@ useEffect(() => {
 
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .map((s) => s[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase()
     : null;
 
   // compute avatar src (normalizeMediaUrl) and fallback
-const avatarSrc = user?.avatar
-  ? normalizeMediaUrl(
+  const avatarSrc = user?.avatar
+    ? normalizeMediaUrl(
       user.avatar.url || user.avatar.filename || user.avatar.path || user.avatar,
       { typeHint: "image" }
     )
-  : null;
+    : null;
 
   // Pulse when counts change (subtle UX)
   useEffect(() => {
@@ -193,20 +193,20 @@ const avatarSrc = user?.avatar
   return (
     <header className="w-full sticky top-0 z-50">
       {/* Top promo stripe */}
-{promoCoupon && promoCoupon.code !== appliedCoupon?.code && (
-  <div className="w-full bg-gradient-to-r from-wax to-cream text-white text-sm">
-    <div className="w-full px-4 lg:px-8 py-1 text-center font-medium">
-      {promoCoupon.description || "Special offer"}{" "}
-      {promoCoupon.minOrderValue > 0 && (
-        <>
-          on orders over <strong>₹{promoCoupon.minOrderValue}</strong>{" "}
-        </>
+      {promoCoupon && promoCoupon.code !== appliedCoupon?.code && (
+        <div className="w-full bg-gradient-to-r from-wax to-cream text-white text-sm">
+          <div className="w-full px-4 lg:px-8 py-1 text-center font-medium">
+            {promoCoupon.description || "Special offer"}{" "}
+            {promoCoupon.minOrderValue > 0 && (
+              <>
+                on orders over <strong>₹{promoCoupon.minOrderValue}</strong>{" "}
+              </>
+            )}
+            — use{" "}
+            <span className="font-bold">{promoCoupon.code}</span>
+          </div>
+        </div>
       )}
-      — use{" "}
-      <span className="font-bold">{promoCoupon.code}</span>
-    </div>
-  </div>
-)}
 
 
       {/* Main nav */}
@@ -223,13 +223,13 @@ const avatarSrc = user?.avatar
               {mobileOpen ? <FiX /> : <FiMenu />}
             </button>
 
-            <Link to="/" className="flex items-center gap-3" aria-label="Scentiva home">
-              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-wax to-flame text-white shadow">
-                <FiGift size={20} />
+            <Link to="/" className="flex items-center gap-2 md:gap-3" aria-label="Scentiva home">
+              <div className="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-wax to-flame text-white shadow">
+                <FiGift size={18} className="md:w-5 md:h-5" />
               </div>
-              <div className="leading-4">
+              <div className="leading-4 text-left">
                 <div
-                  className="text-lg font-semibold"
+                  className="text-base md:text-lg font-semibold"
                   style={{
                     fontFamily: "'Playfair Display', serif",
                     color: "#8B5E3C",
@@ -237,7 +237,7 @@ const avatarSrc = user?.avatar
                 >
                   Scentiva
                 </div>
-                <div className="text-xs text-gray-500 -mt-1">
+                <div className="text-[10px] md:text-xs text-gray-500 md:-mt-1 hidden sm:block">
                   candles • perfumes • gifts
                 </div>
               </div>
@@ -341,14 +341,14 @@ const avatarSrc = user?.avatar
                 >
                   {/* Avatar (preferred) -> initials -> icon */}
                   {avatarSrc ? (
-             <img
-  src={avatarSrc}
-  alt={user.name || "avatar"}
-  className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
-  onError={(e) => {
-    e.currentTarget.src = "/placeholder.png";
-  }}
-/>
+                    <img
+                      src={avatarSrc}
+                      alt={user.name || "avatar"}
+                      className="w-8 h-8 min-w-[2rem] min-h-[2rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder.png";
+                      }}
+                    />
 
                   ) : (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-perfume/20 text-perfume font-semibold">
@@ -367,14 +367,14 @@ const avatarSrc = user?.avatar
                     <div className="px-4 py-3 border-b">
                       <div className="flex items-center gap-3">
                         {avatarSrc ? (
-<img
-  src={avatarSrc}
-  alt={user.name || "avatar"}
-  className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
-  onError={(e) => {
-    e.currentTarget.src = "/placeholder.png";
-  }}
-/>
+                          <img
+                            src={avatarSrc}
+                            alt={user.name || "avatar"}
+                            className="w-10 h-10 min-w-[2.5rem] min-h-[2.5rem] rounded-full object-cover object-center flex-shrink-0 bg-gray-100"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.png";
+                            }}
+                          />
 
                         ) : (
                           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-perfume/20 text-perfume font-semibold">
@@ -462,9 +462,11 @@ const avatarSrc = user?.avatar
                   className="flex items-center gap-3"
                 >
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-wax to-flame text-white flex items-center justify-center shadow">
-                    CL
+                    <FiGift size={18} />
                   </div>
-                  <span className="font-bold">Scentiva</span>
+                  <span className="font-bold text-lg" style={{ fontFamily: "'Playfair Display', serif", color: "#8B5E3C" }}>
+                    Scentiva
+                  </span>
                 </Link>
                 <button onClick={() => setMobileOpen(false)} aria-label="Close menu">
                   <FiX />

@@ -1,8 +1,13 @@
-# Scentiva - MERN E-Commerce Platform
+# Scentiva - Modern E-Commerce Platform 🛍️
+[![MERN Stack](https://img.shields.io/badge/MERN-Full%20Stack-000000?style=for-the-badge&logo=react&logoColor=61DAFB)](https://github.com/your-username/Scentiva-E-Comm)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)]()
 
-Scentiva is a comprehensive full-stack e-commerce application designed to provide a seamless shopping experience. Built with the MERN stack (MongoDB, Express, React, Node.js), it features a modern UI, secure authentication, payment integration, and robust admin tools.
+Scentiva is a comprehensive full-stack e-commerce application designed to provide a seamless shopping experience. Built with the **MERN stack** (MongoDB, Express, React, Node.js), it features a premium UI, secure authentication, payment integration, and robust admin tools.
 
-## 🚀 Key Features
+## 🚀 Live Demo
+**[🌐 Visit Live Site (Vercel)](https://scentiva-lac.vercel.app/)** 
+
+## ✨ Key Features
 
 ### User Features
 - **🔐 Secure Authentication**: User registration, login, and password reset functionalities powered by JWT and secure cookie management.
@@ -71,8 +76,8 @@ Scentiva-E-Comm/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/Scentiva-E-Comm.git
-cd Scentiva-E-Comm
+git https://github.com/khushnawaj/Scentiva--Ecomm
+cd Scentiva--Ecomm
 ```
 
 ### 2. Backend Setup

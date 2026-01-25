@@ -2,7 +2,7 @@
 import React, { useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { FiEye, FiEyeOff, FiLogIn, FiGithub, FiMail } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLogIn } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
 /**
@@ -126,30 +126,8 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Social / alt login */}
-          <div className="my-4 flex items-center gap-3">
-            <hr className="flex-1 border-gray-200" />
-            <div className="text-xs text-gray-400">or continue with</div>
-            <hr className="flex-1 border-gray-200" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => toast("GitHub login placeholder", { icon: "🔗" })}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border rounded hover:bg-gray-50"
-              aria-label="Sign in with GitHub"
-            >
-              <FiGithub /> GitHub
-            </button>
-
-            <button
-              onClick={() => toast("Email magic link placeholder", { icon: "✉️" })}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 border rounded hover:bg-gray-50"
-              aria-label="Sign in with Email"
-            >
-              <FiMail /> Email
-            </button>
-          </div>
+          {/* Social / alt login removed */}
+          <div className="mt-4" />
 
           <p className="text-sm text-center text-gray-600 mt-4">
             Don’t have an account?{" "}

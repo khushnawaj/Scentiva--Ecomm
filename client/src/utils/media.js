@@ -272,13 +272,11 @@ export function normalizeMediaUrl(rawUrl, opts = {}) {
     return urlCandidate;
   }
 
-  // 🚫 NEVER allow local uploads in production
-  if (import.meta.env.PROD) {
-    console.warn(
-      "[media] blocked non-absolute media url in prod:",
-      urlCandidate
-    );
-    return null;
+  // 🚫 In PROD, we prefer absolute URLs (Cloudinary).
+  // If we receive a relative path (e.g. "uploads/abc.png"), it implies local storage.
+  // We'll allow it (concatenating backendRoot) but local filesystem uploads on ephemeral hosting (Vercel/Render) vanish on redeploy.
+  if (import.meta.env.PROD && !urlCandidate.startsWith("http")) {
+     // console.warn("[media] Relative path in PROD:", urlCandidate);
   }
 
   // ✅ Local development fallback ONLY

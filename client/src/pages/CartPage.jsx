@@ -20,14 +20,14 @@ import api from "../api/api";
 import { toast } from "react-hot-toast";
 
 export default function CartPage() {
-const {
-  cart = { items: [] },
-  addToCart,
-  removeFromCart,
-  applyCoupon: applyCouponToContext,
-  clearCoupon,
-  appliedCoupon,
-} = useContext(CartContext);
+  const {
+    cart = { items: [] },
+    addToCart,
+    removeFromCart,
+    applyCoupon: applyCouponToContext,
+    clearCoupon,
+    appliedCoupon,
+  } = useContext(CartContext);
 
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState(null);
@@ -58,11 +58,11 @@ const {
   }, []);
 
   useEffect(() => {
-  if (appliedCoupon) {
-    setCouponPreview(appliedCoupon);
-    setCouponCode(appliedCoupon.code);
-  }
-}, [appliedCoupon]);
+    if (appliedCoupon) {
+      setCouponPreview(appliedCoupon);
+      setCouponCode(appliedCoupon.code);
+    }
+  }, [appliedCoupon]);
 
 
   /* ---------------- Confirm Modal ---------------- */
@@ -126,9 +126,9 @@ const {
       setCouponPreview(data);
       setCouponCode(data.code);
       applyCouponToContext({
-  code: data.code,
-  discount: data.discount,
-});
+        code: data.code,
+        discount: data.discount,
+      });
 
       setCouponMessage({
         type: "success",
@@ -147,13 +147,13 @@ const {
     }
   };
 
-const removeCoupon = () => {
-  setCouponPreview(null);
-  setCouponCode("");
-  setCouponMessage(null);
-  clearCoupon(); // 
-  //   toast.success("Coupon removed");
-};
+  const removeCoupon = () => {
+    setCouponPreview(null);
+    setCouponCode("");
+    setCouponMessage(null);
+    clearCoupon(); // 
+    //   toast.success("Coupon removed");
+  };
 
 
   /* ---------------- Quantity + Remove ---------------- */
@@ -258,40 +258,41 @@ const removeCoupon = () => {
                         {p.title}
                       </Link>
 
-                      <div className="mt-4 flex justify-between items-center">
+                      <div className="mt-4 flex flex-wrap gap-y-3 justify-between items-center">
                         <div className="flex items-center gap-2 bg-cream/60 rounded-md p-1">
                           <button
                             onClick={() =>
                               updateQty(p._id, it.qty - 1)
                             }
                             disabled={it.qty <= 1}
-                            className="p-2 border rounded"
+                            className="p-2 border rounded hover:bg-white"
                           >
                             <FiMinus />
                           </button>
-                          <span className="px-3">{it.qty}</span>
+                          <span className="px-3 font-medium">{it.qty}</span>
                           <button
                             onClick={() =>
                               updateQty(p._id, it.qty + 1)
                             }
-                            className="p-2 border rounded"
+                            className="p-2 border rounded hover:bg-white"
                           >
                             <FiPlus />
                           </button>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <strong>
+                        <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                          <strong className="text-lg">
                             {fmt(
                               (it.price ?? p.price ?? 0) *
-                                it.qty
+                              it.qty
                             )}
                           </strong>
                           <button
                             onClick={() => handleRemove(p._id)}
-                            className="text-red-600"
+                            className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-full"
+                            aria-label="Remove item"
                           >
-                            <FiTrash2 />
+                            <FiTrash2 size={18} />
                           </button>
                         </div>
                       </div>
@@ -420,11 +421,10 @@ const removeCoupon = () => {
                 {/* Feedback */}
                 {couponMessage && (
                   <div
-                    className={`text-xs mt-2 ${
-                      couponMessage.type === "success"
+                    className={`text-xs mt-2 ${couponMessage.type === "success"
                         ? "text-green-700"
                         : "text-red-600"
-                    }`}
+                      }`}
                   >
                     {couponMessage.text}
                   </div>

@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import OrderSuccess from "./pages/OrderSuccess";
 import Wishlist from "./pages/wishlist";
+import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 
 // admin
@@ -38,6 +39,7 @@ export default function createAppRouter() {
           { path: "register", element: <Register /> },
           { path: "profile", element: <Profile /> },
           { path: "wishlist", element: <Wishlist /> },
+          { path: "terms", element: <Terms /> },
           { path: "admin/*", element: <AdminDashboard /> },
           { path: "*", element: <NotFound /> },
         ],
